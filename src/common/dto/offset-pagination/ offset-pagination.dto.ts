@@ -1,6 +1,6 @@
-import { PageOptionsDto } from '@/common/dto/offset-pagination/ page-options.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
+import { PageOptionsDto } from './ page-options.dto';
 
 export class OffsetPaginationDto {
   @ApiProperty()

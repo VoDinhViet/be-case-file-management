@@ -7,11 +7,6 @@ export enum ErrorCode {
 
   // Auth
   A001 = 'auth.error.invalid_credentials',
-  A002 = 'auth.error.not_found',
-  A003 = 'auth.error.inactive',
-  A004 = 'auth.error.expired',
-  A005 = 'auth.error.invalid_token',
-  A006 = 'auth.error.invalid_refresh_token',
 
   // Category
   C001 = 'category.error.not_found',

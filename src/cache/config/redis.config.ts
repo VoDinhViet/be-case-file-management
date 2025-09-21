@@ -1,8 +1,7 @@
 import { registerAs } from '@nestjs/config';
-
-import { RedisConfig } from '@/cache/config/redis-config.type';
-import validateConfig from '@/utils/validate-config';
 import { IsNotEmpty, IsString } from 'class-validator';
+import validateConfig from '../../utils/validate-config';
+import { RedisConfig } from './redis-config.type';
 
 class EnvironmentVariablesValidator {
   @IsString()
@@ -20,5 +19,5 @@ export default registerAs<RedisConfig>('redis', () => {
 
   return {
     url: process.env.REDIS_URL,
-  };
+  } as RedisConfig;
 });

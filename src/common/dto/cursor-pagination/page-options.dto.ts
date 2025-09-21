@@ -1,5 +1,5 @@
-import { DEFAULT_PAGE_LIMIT } from '@/constants/app.constant';
-import { NumberFieldOptional, StringFieldOptional } from '@/decorators/field.decorators';
+import { NumberFieldOptional, StringFieldOptional } from '../../../decorators/field.decorators';
+import { DEFAULT_PAGE_LIMIT } from '../../../constants/app.constant';
 
 export class PageOptionsDto {
   @StringFieldOptional()
@@ -13,7 +13,7 @@ export class PageOptionsDto {
     default: DEFAULT_PAGE_LIMIT,
     int: true,
   })
-  readonly limit?: number = DEFAULT_PAGE_LIMIT;
+  readonly limit: number = DEFAULT_PAGE_LIMIT;
 
   @StringFieldOptional()
   readonly q?: string;

@@ -1,9 +1,6 @@
-import { DEFAULT_CURRENT_PAGE, DEFAULT_PAGE_LIMIT, Order } from '@/constants/app.constant';
-import {
-  EnumFieldOptional,
-  NumberFieldOptional,
-  StringFieldOptional,
-} from '@/decorators/field.decorators';
+import { EnumFieldOptional, NumberFieldOptional, StringFieldOptional } from '../../../decorators/field.decorators';
+import { DEFAULT_CURRENT_PAGE, DEFAULT_PAGE_LIMIT, Order } from '../../../constants/app.constant';
+
 
 export class PageOptionsDto {
   @NumberFieldOptional({
@@ -11,14 +8,14 @@ export class PageOptionsDto {
     default: DEFAULT_PAGE_LIMIT,
     int: true,
   })
-  readonly limit?: number = DEFAULT_PAGE_LIMIT;
+  readonly limit: number = DEFAULT_PAGE_LIMIT;
 
   @NumberFieldOptional({
     min: 1,
     default: DEFAULT_CURRENT_PAGE,
     int: true,
   })
-  readonly page?: number = DEFAULT_CURRENT_PAGE;
+  readonly page: number = DEFAULT_CURRENT_PAGE;
 
   @StringFieldOptional()
   readonly q?: string;
