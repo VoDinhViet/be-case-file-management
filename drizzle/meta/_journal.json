@@ -15,6 +15,27 @@
       "when": 1758270256807,
       "tag": "0001_thick_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1758603511016,
+      "tag": "0002_fair_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1758604414594,
+      "tag": "0003_lazy_maddog",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1758604685750,
+      "tag": "0004_certain_tinkerer",
+      "breakpoints": true
     }
   ]
 }

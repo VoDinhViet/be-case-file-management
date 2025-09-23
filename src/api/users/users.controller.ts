@@ -6,7 +6,10 @@ import { PageUserReqDto } from './dto/page-user.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UsersService } from './users.service';
 
-@Controller('users')
+@Controller({
+  path: 'users',
+  version: '1',
+})
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
