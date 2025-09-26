@@ -18,12 +18,6 @@ export class UsersService {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB, // Replace with actual type
   ) {}
-  async existByUserName(username: string) {
-    return this.db.query.usersTable.findFirst({
-      where: eq(usersTable.username, username),
-      columns: { id: true },
-    });
-  }
 
   async existByUserPhone(phone: string) {
     return this.db.query.usersTable.findFirst({
