@@ -14,11 +14,11 @@ function setupSwagger(app: INestApplication) {
     .setContact('Company Name', 'https://example.com', 'contact@company.com')
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'Api-Key', in: 'header' }, 'Api-Key')
-    .addServer(
-      configService.getOrThrow('app.url', { infer: true }),
-      'Development',
-    )
-    .addServer('https://example.com', 'Staging')
+    // .addServer(
+    //   configService.getOrThrow('app.url', { infer: true }),
+    //   'Development',
+    // )
+    // .addServer('https://example.com', 'Staging')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document, {
