@@ -5,7 +5,7 @@ export const usersTable = pgTable('users', {
   id: uuid().defaultRandom().primaryKey(),
   fullName: varchar('full_name', { length: 256 }),
   phone: varchar('phone', { length: 32 }).notNull().unique(),
-  username: varchar('username', { length: 128 }).notNull().unique(),
+  // username: varchar('username', { length: 128 }).notNull().unique(),
   password: varchar('password', { length: 256 }).notNull(),
   referralCode: varchar('referral_code', { length: 64 }).notNull(),
   roleId: uuid('role_id'),

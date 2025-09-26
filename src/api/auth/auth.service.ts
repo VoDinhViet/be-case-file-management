@@ -50,11 +50,11 @@ export class AuthService {
 
   async signIn(reqDto: LoginReqDto): Promise<LoginResDto> {
     const user = await this.db.query.usersTable.findFirst({
-      where: eq(usersTable.username, reqDto.username),
+      where: eq(usersTable.phone, reqDto.username),
       columns: {
         id: true,
         password: true,
-        username: true,
+        phone: true,
       },
     });
 
@@ -154,9 +154,7 @@ export class AuthService {
     //-------------------------------------------------------
     // 1. Check if user already exists
     //-------------------------------------------------------
-    const isExistUser = await this.usersService.existByUserName(
-      reqDto.username,
-    );
+    const isExistUser = await this.usersService.existByUserPhone(reqDto.phone);
 
     if (isExistUser) {
       throw new ValidationException(ErrorCode.U002);

@@ -25,6 +25,13 @@ export class UsersService {
     });
   }
 
+  async existByUserPhone(phone: string) {
+    return this.db.query.usersTable.findFirst({
+      where: eq(usersTable.phone, phone),
+      columns: { id: true },
+    });
+  }
+
   async getPageUsers(reqDto: PageUserReqDto, payload: JwtPayloadType) {
     const baseConfig: FindManyQueryConfig<typeof this.db.query.usersTable> = {
       where: and(

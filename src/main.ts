@@ -33,14 +33,15 @@ async function bootstrap() {
     configService.get('app.nodeEnv', { infer: true }) ===
     Environment.PRODUCTION;
   const reflector = app.get(Reflector);
-  app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept',
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: '*',
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  //   allowedHeaders: 'Content-Type, Accept',
+  //   credentials: true,
+  // });
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
 
+  app.enableCors();
   // Use global prefix if you don't have subdomain
   app.setGlobalPrefix(
     configService.getOrThrow('app.apiPrefix', { infer: true }),
