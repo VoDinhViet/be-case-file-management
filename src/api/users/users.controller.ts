@@ -1,7 +1,9 @@
 import { Body, Controller, Delete, Get, Put, Query } from '@nestjs/common';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiAuth } from '../../decorators/http.decorators';
+import { Roles } from '../../decorators/role.decorator';
 import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
+import { RoleEnum } from '../auth/types/role.enum';
 import { PageUserReqDto } from './dto/page-user.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UsersService } from './users.service';
@@ -13,7 +15,7 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // @Roles(RoleEnum.MANAGEMENT)
+  @Roles(RoleEnum.ADMIN)
   @ApiAuth({
     summary: 'Lấy danh sách người dùng [ADMIN]',
   })
@@ -33,12 +35,10 @@ export class UsersController {
     return await this.usersService.updateByUserId(userId, reqDto);
   }
 
-  @Put('profile')
-  async updateMyProfile(
-    @CurrentUser() payload: JwtPayloadType,
-    @Body() reqDto: UpdateUserReqDto,
-  ) {
-    return await this.usersService.updateByUserId(payload.id, reqDto);
+  @ApiAuth()
+  @Get('profile')
+  async updateMyProfile(@CurrentUser() payload: JwtPayloadType) {
+    return this.usersService.findById(payload.id);
   }
 
   @Delete(':userId')

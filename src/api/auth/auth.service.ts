@@ -29,6 +29,7 @@ import { RegisterReqDto } from './dto/register.req.dto';
 import { RegisterResDto } from './dto/register.res.dto';
 import { JwtPayloadType } from './types/jwt-payload.type';
 import { JwtRefreshPayloadType } from './types/jwt-refresh-payload.type';
+import { RoleEnum } from './types/role.enum';
 type Token = Branded<
   {
     accessToken: string;
@@ -55,6 +56,7 @@ export class AuthService {
         id: true,
         password: true,
         phone: true,
+        role: true,
       },
     });
 
@@ -86,6 +88,7 @@ export class AuthService {
     const token = await this.createToken({
       id: user.id,
       sessionId: session.id,
+      role: user.role,
       hash,
     });
     console.log('token', token);
@@ -99,6 +102,7 @@ export class AuthService {
   private async createToken(data: {
     id: string;
     sessionId: string;
+    role: RoleEnum;
     hash: string;
   }): Promise<Token> {
     const tokenExpiresIn = this.configService.getOrThrow('auth.expires', {
@@ -111,7 +115,7 @@ export class AuthService {
       await this.jwtService.signAsync(
         {
           id: data.id,
-          role: '', // TODO: add role
+          role: data.role,
           sessionId: data.sessionId,
         },
         {
@@ -259,6 +263,7 @@ export class AuthService {
     return await this.createToken({
       id: user.id,
       sessionId: session.id,
+      role: user.role,
       hash: newHash,
     });
   }

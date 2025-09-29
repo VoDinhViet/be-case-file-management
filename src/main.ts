@@ -10,13 +10,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import compression from 'compression';
-import helmet from 'helmet';
 import { AuthService } from './api/auth/auth.service';
+import { AccessControlService } from './api/shared/access-control.service';
 import { AppModule } from './app.module';
 import { AllConfigType } from './config/config.type';
 import { Environment } from './constants/app.constant';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { AuthGuard } from './guards/auth.guard';
+import { RoleGuard } from './guards/role.guard';
 import setupSwagger from './utils/setup-swagger';
 
 async function bootstrap() {
@@ -44,7 +45,13 @@ async function bootstrap() {
   //   credentials: true,
   // });
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
-
+  app.useGlobalGuards(
+    new RoleGuard(
+      reflector,
+      app.get(AccessControlService),
+      app.get(ConfigService),
+    ),
+  );
   app.enableCors();
   // Use global prefix if you don't have subdomain
   app.setGlobalPrefix(

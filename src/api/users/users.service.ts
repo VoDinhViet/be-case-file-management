@@ -75,4 +75,10 @@ export class UsersService {
       .where(eq(usersTable.id, userId))
       .returning();
   }
+
+  async findById(userId: string) {
+    return this.db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId),
+    });
+  }
 }
