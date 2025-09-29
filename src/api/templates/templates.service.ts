@@ -4,7 +4,11 @@ import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
 import { DRIZZLE } from '../../database/database.module';
-import { templateFields, templates } from '../../database/schemas';
+import {
+  templateFieldsTable,
+  templateGroupsTable,
+  templatesTable,
+} from '../../database/schemas/templates.schema';
 import type {
   DrizzleDB,
   FindManyQueryConfig,
@@ -18,44 +22,67 @@ export class TemplatesService {
     @Inject(DRIZZLE) private readonly db: DrizzleDB, // Replace with actual type
   ) {}
   async createTemplates(reqDto: CreateTemplateReqDto) {
-    const [tpl] = await this.db
-      .insert(templates)
-      .values({
-        ...reqDto,
-      })
-      .returning();
+    return this.db.transaction(async (trx) => {
+      // 1. Insert template
+      const [createdTemplate] = await trx
+        .insert(templatesTable)
+        .values({
+          name: reqDto.name,
+          description: reqDto.description,
+        })
+        .returning();
 
-    if (reqDto.fields?.length) {
-      await this.db.insert(templateFields).values(
-        reqDto.fields.map((f) => ({
-          templateId: tpl.id,
-          ...f,
-        })),
-      );
-    }
+      // 2. Insert groups + fields
+      if (reqDto.groups && reqDto.groups.length > 0) {
+        for (const group of reqDto.groups) {
+          const [createdGroup] = await trx
+            .insert(templateGroupsTable)
+            .values({
+              templateId: createdTemplate.id,
+              ...group,
+            })
+            .returning();
 
-    return tpl;
+          // 3. Insert fields trong group
+          if (group.fields && group.fields.length > 0) {
+            await trx.insert(templateFieldsTable).values(
+              group.fields.map((field) => ({
+                groupId: createdGroup.id,
+                ...field,
+              })),
+            );
+          }
+        }
+      }
+
+      // 4. Return kết quả
+      return createdTemplate;
+    });
   }
 
   async getPageTemplates(reqDto: PageTemplateReqDto) {
-    const baseConfig: FindManyQueryConfig<typeof this.db.query.templates> = {
-      with: {
-        fields: true,
-      },
-    };
-
-    const qCount = this.db.query.templates.findMany({
+    const baseConfig: FindManyQueryConfig<typeof this.db.query.templatesTable> =
+      {
+        with: {
+          groups: {
+            with: {
+              fields: true,
+            },
+          },
+        },
+      };
+    const qCount = this.db.query.templatesTable.findMany({
       ...baseConfig,
       columns: { id: true },
     });
 
     const [entities, [{ totalCount }]] = await Promise.all([
-      this.db.query.templates.findMany({
+      this.db.query.templatesTable.findMany({
         ...baseConfig,
         orderBy: [
           ...(reqDto.order === Order.DESC
-            ? [desc(templates.createdAt)]
-            : [desc(templates.createdAt)]),
+            ? [desc(templatesTable.createdAt)]
+            : [desc(templatesTable.createdAt)]),
         ],
         limit: reqDto.limit,
         offset: reqDto.offset,
