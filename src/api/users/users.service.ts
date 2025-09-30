@@ -4,12 +4,11 @@ import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
 import { DRIZZLE } from '../../database/database.module';
-import { usersTable } from '../../database/schemas';
+import { referralTable, usersTable } from '../../database/schemas';
 import type {
   DrizzleDB,
   FindManyQueryConfig,
 } from '../../database/types/drizzle';
-import { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { PageUserReqDto } from './dto/page-user.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 
@@ -26,7 +25,7 @@ export class UsersService {
     });
   }
 
-  async getPageUsers(reqDto: PageUserReqDto, payload: JwtPayloadType) {
+  async getPageUsers(reqDto: PageUserReqDto) {
     const baseConfig: FindManyQueryConfig<typeof this.db.query.usersTable> = {
       where: and(
         or(
@@ -59,7 +58,7 @@ export class UsersService {
     return new OffsetPaginatedDto(entities, meta);
   }
 
-  async deleteUser(userId: string, payload: JwtPayloadType) {
+  async deleteUser(userId: string) {
     return this.db
       .delete(usersTable)
       .where(eq(usersTable.id, userId))
@@ -80,5 +79,19 @@ export class UsersService {
     return this.db.query.usersTable.findFirst({
       where: eq(usersTable.id, userId),
     });
+  }
+
+  async getReferralCode() {
+    return this.db.query.referralTable.findFirst();
+  }
+
+  async randomReferralCode() {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    //save to db
+    const [createdCode] = await this.db
+      .update(referralTable)
+      .set({ code })
+      .returning();
+    return createdCode;
   }
 }

@@ -27,6 +27,7 @@ export class RoleGuard implements CanActivate {
       .switchToHttp()
       .getRequest<Request & { user: JwtPayloadType }>();
     const { user, url, method } = request;
+    console.log('user role', user);
 
     const isDev =
       this.configService.get('app.nodeEnv', { infer: true }) ===

@@ -24,7 +24,7 @@ export class UsersController {
     @CurrentUser() payload: JwtPayloadType,
     @Query() reqDto: PageUserReqDto,
   ) {
-    return await this.usersService.getPageUsers(reqDto, payload);
+    return await this.usersService.getPageUsers(reqDto);
   }
 
   @Put(':userId')
@@ -42,10 +42,26 @@ export class UsersController {
   }
 
   @Delete(':userId')
-  async deleteUser(
-    @CurrentUser() payload: JwtPayloadType,
-    @Query('userId') userId: string,
-  ) {
-    return await this.usersService.deleteUser(userId, payload);
+  async deleteUser(@Query('userId') userId: string) {
+    return await this.usersService.deleteUser(userId);
+  }
+
+  // láy mã mời của admin
+  @Roles(RoleEnum.ADMIN)
+  @ApiAuth({
+    summary: 'Random mã mời admin [ADMIN]',
+  })
+  @Get('referral-code')
+  async getReferralCode() {
+    return this.usersService.getReferralCode();
+  }
+
+  @Roles(RoleEnum.ADMIN)
+  @ApiAuth({
+    summary: 'Random mã mời ngẫu nhiên [ADMIN]',
+  })
+  @Get('referral-code/random')
+  async randomReferralCode() {
+    return this.usersService.randomReferralCode();
   }
 }

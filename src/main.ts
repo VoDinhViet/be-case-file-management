@@ -45,13 +45,6 @@ async function bootstrap() {
   //   credentials: true,
   // });
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
-  app.useGlobalGuards(
-    new RoleGuard(
-      reflector,
-      app.get(AccessControlService),
-      app.get(ConfigService),
-    ),
-  );
   app.enableCors();
   // Use global prefix if you don't have subdomain
   app.setGlobalPrefix(
@@ -79,6 +72,13 @@ async function bootstrap() {
     }),
   );
   app.useGlobalGuards(new AuthGuard(reflector, app.get(AuthService)));
+  app.useGlobalGuards(
+    new RoleGuard(
+      reflector,
+      app.get(AccessControlService),
+      app.get(ConfigService),
+    ),
+  );
   //************************************************************
   // [Enable/Disable] Swagger UI
   //************************************************************

@@ -14,8 +14,11 @@ import { SYSTEM_USER_ID } from '../../constants/app.constant';
 import { CacheKey } from '../../constants/cache.constant';
 import { ErrorCode } from '../../constants/error-code.constant';
 import { DRIZZLE } from '../../database/database.module';
-import { sessionTable, usersTable } from '../../database/schemas';
-import { referralTable } from '../../database/schemas/referral.schema';
+import {
+  referralTable,
+  sessionTable,
+  usersTable,
+} from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
 import { ValidationException } from '../../exceptions/validation.exception';
 import { createCacheKey } from '../../utils/cache.util';
@@ -207,6 +210,7 @@ export class AuthService {
     if (isSessionBlacklisted) {
       throw new UnauthorizedException();
     }
+    console.log('payload', payload);
 
     return payload;
   }
