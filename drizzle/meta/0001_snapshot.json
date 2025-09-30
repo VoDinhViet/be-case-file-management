@@ -1,6 +1,6 @@
 {
-  "id": "c754a38e-5700-4197-9358-a5ba19acbdb8",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "c560d46e-5e8d-472f-ab20-b944e403a196",
+  "prevId": "c754a38e-5700-4197-9358-a5ba19acbdb8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -205,7 +205,7 @@
         },
         "options": {
           "name": "options",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, type ApiPropertyOptions } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
@@ -22,10 +22,10 @@ import {
   NotEquals,
   ValidateNested,
 } from 'class-validator';
-import { IsNullable } from './validators/is-nullable.decorator';
-import { ToBoolean, ToLowerCase, ToUpperCase } from './transform.decorators';
-import { IsPassword } from './validators/is-password.decorator';
 import { Constructor } from '../common/types/types';
+import { ToBoolean, ToLowerCase, ToUpperCase } from './transform.decorators';
+import { IsNullable } from './validators/is-nullable.decorator';
+import { IsPassword } from './validators/is-password.decorator';
 
 interface IFieldOptions {
   each?: boolean;
@@ -108,7 +108,13 @@ export function NumberFieldOptional(
 export function StringField(
   options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
 ): PropertyDecorator {
-  const decorators = [Type(() => String), IsString({ each: options.each })];
+  const decorators = [
+    Type(() => String),
+    Transform(({ value }) => (value === '' ? null : value), {
+      toClassOnly: true,
+    }),
+    IsString({ each: options.each }),
+  ];
 
   if (options.nullable) {
     decorators.push(IsNullable({ each: options.each }));
@@ -129,7 +135,6 @@ export function StringField(
   }
 
   const minLength = options.minLength || 1;
-
   decorators.push(MinLength(minLength, { each: options.each }));
 
   if (options.maxLength) {

@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
-  boolean,
+  boolean, jsonb,
   pgTable,
   text,
   timestamp,
@@ -13,7 +13,7 @@ import {
 //-----------------------------------------
 export const templatesTable = pgTable('templates', {
   id: uuid().defaultRandom().primaryKey(), // ✅ alias rõ ràng
-  name: varchar('name', { length: 100 }).notNull(),
+  title: varchar('title', { length: 100 }).notNull(),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -39,11 +39,12 @@ export const templateFieldsTable = pgTable('template_fields', {
   groupId: uuid('group_id')
     .notNull()
     .references(() => templateGroupsTable.id),
+  fieldLabel: varchar('field_label', { length: 100 }).notNull(),
   fieldName: varchar('field_name', { length: 100 }).notNull(),
   fieldType: varchar('field_type', { length: 50 }).notNull(),
   isRequired: boolean('is_required').notNull().default(false),
   placeholder: varchar('placeholder', { length: 255 }),
-  options: text('options'),
+  options: jsonb().$type<string[]>().default([]), // ✅ lưu mảng JSON
   defaultValue: varchar('default_value', { length: 255 }),
   description: text('description'),
 });

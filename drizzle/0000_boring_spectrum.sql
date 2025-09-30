@@ -23,6 +23,7 @@ CREATE TABLE "case_files" (
 CREATE TABLE "template_fields" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"group_id" uuid NOT NULL,
+	"field_label" varchar(100) NOT NULL,
 	"field_name" varchar(100) NOT NULL,
 	"field_type" varchar(50) NOT NULL,
 	"is_required" boolean DEFAULT false NOT NULL,
@@ -42,7 +43,7 @@ CREATE TABLE "template_groups" (
 --> statement-breakpoint
 CREATE TABLE "templates" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" varchar(100) NOT NULL,
+	"title" varchar(100) NOT NULL,
 	"description" text,
 	"created_at" timestamp DEFAULT now()
 );

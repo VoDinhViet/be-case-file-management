@@ -22,12 +22,13 @@ export class TemplatesService {
     @Inject(DRIZZLE) private readonly db: DrizzleDB, // Replace with actual type
   ) {}
   async createTemplates(reqDto: CreateTemplateReqDto) {
+    console.log('Creating template with data:', reqDto);
     return this.db.transaction(async (trx) => {
       // 1. Insert template
       const [createdTemplate] = await trx
         .insert(templatesTable)
         .values({
-          name: reqDto.name,
+          title: reqDto.title,
           description: reqDto.description,
         })
         .returning();

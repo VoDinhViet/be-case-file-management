@@ -4,13 +4,21 @@ import {
   StringField,
   StringFieldOptional,
 } from '../../../decorators/field.decorators';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 // -------------------------
 // Field DTO
 // -------------------------
 export class CreateFieldDto {
   @StringField({
-    description: 'Tên trường',
+    description: 'Nhãn hiển thị cho trường',
+    maxLength: 100,
+  })
+  fieldLabel: string;
+
+  @StringField({
+    description: 'Tên kỹ thuật (system name)',
     maxLength: 100,
   })
   fieldName: string;
@@ -30,8 +38,10 @@ export class CreateFieldDto {
   })
   placeholder?: string;
 
-  @StringFieldOptional()
-  options?: string; // JSON hoặc CSV
+  @IsOptional()
+  @IsString({ each: true })
+  @ApiPropertyOptional({ type: String, isArray: true })
+  options?: string[]; // array of string
 
   @StringFieldOptional({
     description: 'Giá trị mặc định cho trường',
@@ -72,7 +82,7 @@ export class CreateTemplateReqDto {
   @StringField({
     description: 'Tên mẫu',
   })
-  name: string;
+  title: string;
 
   @StringFieldOptional({
     description: 'Mô tả mẫu',
