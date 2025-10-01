@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiAuth } from '../../decorators/http.decorators';
 import { Roles } from '../../decorators/role.decorator';
@@ -29,7 +37,7 @@ export class UsersController {
 
   @Put(':userId')
   async updateUser(
-    @Query('userId') userId: string,
+    @Param('userId') userId: string,
     @Body() reqDto: UpdateUserReqDto,
   ) {
     return await this.usersService.updateByUserId(userId, reqDto);

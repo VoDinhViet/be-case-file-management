@@ -6,4 +6,7 @@ export class UpdateUserReqDto {
 
   @StringFieldOptional()
   phone?: string;
+
+  @StringFieldOptional()
+  password?: string;
 }
