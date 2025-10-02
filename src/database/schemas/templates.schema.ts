@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import {
-  boolean, jsonb,
+  boolean,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -46,6 +47,7 @@ export const templateFieldsTable = pgTable('template_fields', {
   placeholder: varchar('placeholder', { length: 255 }),
   options: jsonb().$type<string[]>().default([]), // ✅ lưu mảng JSON
   defaultValue: varchar('default_value', { length: 255 }),
+  isEdit: boolean('is_editable').notNull().default(true),
   description: text('description'),
 });
 

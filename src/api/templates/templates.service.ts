@@ -1,18 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { count, desc, sql } from 'drizzle-orm';
+import { count, desc, eq, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
+import { ErrorCode } from '../../constants/error-code.constant';
 import { DRIZZLE } from '../../database/database.module';
 import {
   templateFieldsTable,
   templateGroupsTable,
   templatesTable,
-} from '../../database/schemas/templates.schema';
+} from '../../database/schemas';
 import type {
   DrizzleDB,
   FindManyQueryConfig,
 } from '../../database/types/drizzle';
+import { ValidationException } from '../../exceptions/validation.exception';
 import { CreateTemplateReqDto } from './dto/create-template.req.dto';
 import { PageTemplateReqDto } from './dto/page-template.req.dto';
 
@@ -21,10 +23,23 @@ export class TemplatesService {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB, // Replace with actual type
   ) {}
+
+  async existByTemplateTitle(title: string) {
+    return this.db.query.templatesTable.findFirst({
+      where: eq(templatesTable.title, title),
+      columns: { id: true },
+    });
+  }
   async createTemplates(reqDto: CreateTemplateReqDto) {
-    console.log('Creating template with data:', reqDto);
+    console.log(
+      'Creating template with data:',
+      JSON.stringify(reqDto, null, 2),
+    );
     return this.db.transaction(async (trx) => {
       // 1. Insert template
+      if (await this.existByTemplateTitle(reqDto.title)) {
+        throw new ValidationException(ErrorCode.T003);
+      }
       const [createdTemplate] = await trx
         .insert(templatesTable)
         .values({
@@ -93,5 +108,22 @@ export class TemplatesService {
 
     const meta = new OffsetPaginationDto(totalCount, reqDto);
     return new OffsetPaginatedDto(entities, meta);
+  }
+
+  async getTemplateById(templateId: string) {
+    const template = await this.db.query.templatesTable.findFirst({
+      where: eq(templatesTable.id, templateId),
+      with: {
+        groups: {
+          with: {
+            fields: true,
+          },
+        },
+      },
+    });
+    if (!template) {
+      throw new ValidationException(ErrorCode.T001);
+    }
+    return template;
   }
 }

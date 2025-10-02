@@ -1,11 +1,11 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 import {
   BooleanFieldOptional,
   ClassField,
   StringField,
   StringFieldOptional,
 } from '../../../decorators/field.decorators';
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
 
 // -------------------------
 // Field DTO
@@ -28,6 +28,11 @@ export class CreateFieldDto {
     maxLength: 50,
   })
   fieldType: string;
+
+  @BooleanFieldOptional({
+    description: 'Trường  biét là không được edit khi tạo case',
+  })
+  isEdit?: boolean;
 
   @BooleanFieldOptional()
   isRequired?: boolean;
