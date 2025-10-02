@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, or, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
@@ -29,8 +29,12 @@ export class UsersService {
     const baseConfig: FindManyQueryConfig<typeof this.db.query.usersTable> = {
       where: and(
         or(
-          ilike(usersTable.phone, `%${reqDto.q ?? ''}%`),
-          ilike(usersTable.fullName, `%${reqDto.q ?? ''}%`),
+          ...(reqDto.q
+            ? [
+                sql`unaccent(${usersTable.phone}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                sql`unaccent(${usersTable.fullName}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+              ]
+            : []),
         ),
       ),
     };

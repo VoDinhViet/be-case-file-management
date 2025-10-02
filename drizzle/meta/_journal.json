@@ -29,6 +29,20 @@
       "when": 1759401320843,
       "tag": "0003_perpetual_drax",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1759405798661,
+      "tag": "0004_enable-unaccent-extenstion",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1759405982643,
+      "tag": "0005_flashy_salo",
+      "breakpoints": true
     }
   ]
 }
