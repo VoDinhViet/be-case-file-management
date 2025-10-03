@@ -14,6 +14,16 @@ export class TemplatesController {
     return await this.templatesService.createTemplates(reqDto);
   }
 
+  //update template
+  @ApiAuth()
+  @Post(':templateId')
+  async updateTemplate(
+    @Param('templateId') templateId: string,
+    @Body() reqDto: CreateTemplateReqDto,
+  ) {
+    return await this.templatesService.updateTemplate(templateId, reqDto);
+  }
+
   @ApiPublic()
   @Get()
   async getPageTemplates(@Query() reqDto: PageTemplateReqDto) {

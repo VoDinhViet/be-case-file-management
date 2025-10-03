@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm';
 import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { templateFieldsTable, templatesTable } from './templates.schema';
 
@@ -20,6 +21,14 @@ export const casesTable = pgTable('cases', {
     .$onUpdate(() => new Date()),
 });
 
+export const casesTableRelations = relations(casesTable, ({ one, many }) => ({
+  template: one(templatesTable, {
+    fields: [casesTable.templateId],
+    references: [templatesTable.id],
+  }),
+  fields: many(caseFieldsTable),
+}));
+
 export const caseFieldsTable = pgTable('case_fields', {
   id: uuid().defaultRandom().primaryKey(),
   caseId: uuid('case_id')
@@ -31,3 +40,17 @@ export const caseFieldsTable = pgTable('case_fields', {
   value: text('value'), // giá trị nhập
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export const caseFieldsTableRelations = relations(
+  caseFieldsTable,
+  ({ one }) => ({
+    case: one(casesTable, {
+      fields: [caseFieldsTable.caseId],
+      references: [casesTable.id],
+    }),
+    field: one(templateFieldsTable, {
+      fields: [caseFieldsTable.fieldId],
+      references: [templateFieldsTable.id],
+    }),
+  }),
+);

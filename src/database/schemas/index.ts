@@ -1,3 +1,4 @@
+export * from './cases.schema';
 export * from './referral.schema';
 export * from './session.schema';
 export * from './templates.schema';

@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import {
   boolean,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -29,6 +30,8 @@ export const templateGroupsTable = pgTable('template_groups', {
     .references(() => templatesTable.id),
   title: varchar('title', { length: 100 }).notNull(),
   description: text('description'),
+  isEdit: boolean('is_editable').notNull().default(true),
+  index: integer().notNull().default(0),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -48,19 +51,8 @@ export const templateFieldsTable = pgTable('template_fields', {
   options: jsonb().$type<string[]>().default([]), // ✅ lưu mảng JSON
   defaultValue: varchar('default_value', { length: 255 }),
   isEdit: boolean('is_editable').notNull().default(true),
+  index: integer().notNull().default(0),
   description: text('description'),
-});
-
-//-----------------------------------------
-// Bảng case_files (ví dụ)
-//-----------------------------------------
-export const caseFilesTable = pgTable('case_files', {
-  id: uuid().defaultRandom().primaryKey(),
-  fieldId: uuid('field_id')
-    .notNull()
-    .references(() => templateFieldsTable.id), // ✅ đảm bảo đúng
-  value: text('value'),
-  createdAt: timestamp('created_at').defaultNow(),
 });
 
 //-----------------------------------------
@@ -88,13 +80,5 @@ export const templateFieldsRelations = relations(
       fields: [templateFieldsTable.groupId],
       references: [templateGroupsTable.id],
     }),
-    caseFiles: many(caseFilesTable), // ✅ một field có nhiều caseFile
   }),
 );
-
-export const caseFilesRelations = relations(caseFilesTable, ({ one }) => ({
-  field: one(templateFieldsTable, {
-    fields: [caseFilesTable.fieldId],
-    references: [templateFieldsTable.id],
-  }),
-}));

@@ -1,0 +1,1 @@
+ALTER TABLE "template_fields" ADD COLUMN "index" integer DEFAULT 0 NOT NULL;

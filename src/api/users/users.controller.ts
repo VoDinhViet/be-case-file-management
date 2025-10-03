@@ -72,4 +72,14 @@ export class UsersController {
   async randomReferralCode() {
     return this.usersService.randomReferralCode();
   }
+
+  // select all users
+  @Roles(RoleEnum.STAFF)
+  @ApiAuth({
+    summary: 'Select all users [ADMIN]',
+  })
+  @Get('all')
+  async selectAllUsers() {
+    return this.usersService.selectAllUsers();
+  }
 }

@@ -3,6 +3,7 @@ import { IsOptional, IsString } from 'class-validator';
 import {
   BooleanFieldOptional,
   ClassField,
+  NumberField,
   StringField,
   StringFieldOptional,
 } from '../../../decorators/field.decorators';
@@ -43,6 +44,9 @@ export class CreateFieldDto {
   })
   placeholder?: string;
 
+  @NumberField()
+  index: number;
+
   @IsOptional()
   @IsString({ each: true })
   @ApiPropertyOptional({ type: String, isArray: true })
@@ -75,6 +79,14 @@ export class CreateGroupDto {
     description: 'Mô tả nhóm',
   })
   description?: string;
+
+  @NumberField()
+  index: number;
+
+  @BooleanFieldOptional({
+    description: 'Trường  biét là không được edit khi tạo case',
+  })
+  isEdit?: boolean;
 
   @ClassField(() => CreateFieldDto, {
     isArray: true,

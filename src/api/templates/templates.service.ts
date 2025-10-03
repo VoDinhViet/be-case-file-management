@@ -126,4 +126,17 @@ export class TemplatesService {
     }
     return template;
   }
+
+  async updateTemplate(templateId: string, reqDto: CreateTemplateReqDto) {
+    console.log(
+      'Updating template with data:',
+      JSON.stringify(reqDto, null, 2),
+    );
+    const existingTemplate = await this.db.query.templatesTable.findFirst({
+      where: eq(templatesTable.id, templateId),
+    });
+    if (!existingTemplate) {
+      throw new ValidationException(ErrorCode.T001);
+    }
+  }
 }

@@ -102,4 +102,14 @@ export class UsersService {
       .returning();
     return createdCode;
   }
+
+  selectAllUsers() {
+    return this.db
+      .select({
+        id: usersTable.id,
+        phone: usersTable.phone,
+        fullName: usersTable.fullName,
+      })
+      .from(usersTable);
+  }
 }

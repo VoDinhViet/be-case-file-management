@@ -1,9 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/database.module';
-import { templateFieldsTable, templateGroupsTable, } from '../../database/schemas';
-import { caseFieldsTable, casesTable, } from '../../database/schemas/cases.schema';
+import {
+  templateFieldsTable,
+  templateGroupsTable,
+} from '../../database/schemas';
+import {
+  caseFieldsTable,
+  casesTable,
+} from '../../database/schemas/cases.schema';
 import type { DrizzleDB } from '../../database/types/drizzle';
+import { CreateCaseDto } from './dto/create-case.req.dto';
 
 @Injectable()
 export class CasesService {
@@ -34,14 +41,14 @@ export class CasesService {
       )
       .where(eq(templateGroupsTable.templateId, templateId));
   }
-  async createCase(reqDto: any) {
+  async createCase(reqDto: CreateCaseDto) {
     console.log('Creating case with data:', reqDto);
     // 1. Insert vào bảng cases
     const [newCase] = await this.db
       .insert(casesTable)
       .values({
         templateId: reqDto.templateId,
-        name: reqDto.code, // code -> name (nếu muốn đổi tên có thể sửa)
+        name: Math.random().toString(36).substring(2, 8).toUpperCase(), // Tạo mã ngẫu nhiên
         description: reqDto.description,
         startedAt: reqDto.startDate ? new Date(reqDto.startDate) : undefined,
         endedAt: reqDto.endDate ? new Date(reqDto.endDate) : undefined,
@@ -70,5 +77,17 @@ export class CasesService {
       }
     }
     return newCase;
+  }
+
+  getPageCases() {
+    return this.db.query.casesTable.findMany({
+      orderBy: [desc(casesTable.createdAt)],
+      with: {
+        template: true,
+        fields: true,
+      },
+      limit: 10,
+      offset: 0,
+    });
   }
 }
