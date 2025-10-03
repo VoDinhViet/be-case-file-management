@@ -9,6 +9,7 @@ import type {
   DrizzleDB,
   FindManyQueryConfig,
 } from '../../database/types/drizzle';
+import { hashPassword } from '../../utils/password.util';
 import { PageUserReqDto } from './dto/page-user.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 
@@ -74,6 +75,9 @@ export class UsersService {
       .update(usersTable)
       .set({
         ...reqDto,
+        ...(reqDto.password
+          ? { password: await hashPassword(reqDto.password) }
+          : {}),
       })
       .where(eq(usersTable.id, userId))
       .returning();

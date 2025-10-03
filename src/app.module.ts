@@ -17,6 +17,7 @@ import { AllConfigType } from './config/config.type';
 import databaseConfig from './database/config/database.config';
 import { DatabaseModule } from './database/database.module';
 import { TemplatesModule } from './api/templates/templates.module';
+import { CasesModule } from './api/cases/cases.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -44,6 +45,7 @@ import { TemplatesModule } from './api/templates/templates.module';
     AuthModule,
     UsersModule,
     TemplatesModule,
+    CasesModule,
   ],
   controllers: [AppController, UsersController],
   providers: [AppService],
