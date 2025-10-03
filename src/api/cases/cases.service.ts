@@ -48,6 +48,7 @@ export class CasesService {
       .insert(casesTable)
       .values({
         templateId: reqDto.templateId,
+        userId: reqDto.userId,
         name: Math.random().toString(36).substring(2, 8).toUpperCase(), // Tạo mã ngẫu nhiên
         description: reqDto.description,
         startedAt: reqDto.startDate ? new Date(reqDto.startDate) : undefined,
@@ -85,6 +86,7 @@ export class CasesService {
       with: {
         template: true,
         fields: true,
+        assignee: true,
       },
       limit: 10,
       offset: 0,

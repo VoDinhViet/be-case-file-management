@@ -23,8 +23,8 @@ export class DynamicFieldDto {
   @StringFieldOptional()
   value?: string;
 
-  @StringField()
-  fieldType?: FieldType;
+  // @StringField()
+  // fieldType?: FieldType;
 }
 
 // DTO chính tạo case
