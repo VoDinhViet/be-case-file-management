@@ -2,13 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/database.module';
 import {
+  caseFieldsTable,
+  casesTable,
   templateFieldsTable,
   templateGroupsTable,
 } from '../../database/schemas';
-import {
-  caseFieldsTable,
-  casesTable,
-} from '../../database/schemas/cases.schema';
 import type { DrizzleDB } from '../../database/types/drizzle';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 
