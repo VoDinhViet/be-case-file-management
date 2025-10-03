@@ -83,7 +83,11 @@ export class CasesService {
       orderBy: [desc(casesTable.createdAt)],
       with: {
         template: true,
-        fields: true,
+        fields: {
+          with: {
+            field: true,
+          },
+        },
         assignee: true,
       },
       limit: 10,
