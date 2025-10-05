@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { count, desc, eq, sql } from 'drizzle-orm';
+import { asc, count, desc, eq, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
@@ -115,8 +115,11 @@ export class TemplatesService {
       where: eq(templatesTable.id, templateId),
       with: {
         groups: {
+          orderBy: [asc(templateGroupsTable.index)],
           with: {
-            fields: true,
+            fields: {
+              orderBy: [asc(templateFieldsTable.index)],
+            },
           },
         },
       },
