@@ -12,8 +12,9 @@ export const usersTable = pgTable(
       .$type<RoleEnum>()
       .default(RoleEnum.STAFF),
     password: varchar('password', { length: 256 }).notNull(),
-    referralCode: varchar('referral_code', { length: 64 }).notNull(),
+    referralCode: varchar('referral_code', { length: 64 }),
     roleId: uuid('role_id'),
+    createdBy: uuid('created_by'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -27,6 +28,11 @@ export const usersTable = pgTable(
   ],
 );
 
-export const usersRelations = relations(usersTable, ({ one }) => ({}));
+export const usersRelations = relations(usersTable, ({ one }) => ({
+  creator: one(usersTable, {
+    fields: [usersTable.createdBy],
+    references: [usersTable.id],
+  }),
+}));
 
 export type User = typeof usersTable.$inferSelect;

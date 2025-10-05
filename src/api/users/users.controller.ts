@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Post,
   Put,
   Query,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { ApiAuth } from '../../decorators/http.decorators';
 import { Roles } from '../../decorators/role.decorator';
 import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { RoleEnum } from '../auth/types/role.enum';
+import { CreateUserReqDto } from './dto/create-user.req.dto';
 import { PageUserReqDto } from './dto/page-user.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UsersService } from './users.service';
@@ -22,6 +24,18 @@ import { UsersService } from './users.service';
 })
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Roles(RoleEnum.ADMIN)
+  @ApiAuth({
+    summary: 'Tạo tài khoản [ADMIN]',
+  })
+  @Post()
+  async create(
+    @CurrentUser() payload: JwtPayloadType,
+    @Body() reqDto: CreateUserReqDto,
+  ) {
+    return await this.usersService.create(reqDto, payload);
+  }
 
   @Roles(RoleEnum.ADMIN)
   @ApiAuth({
@@ -50,7 +64,7 @@ export class UsersController {
   }
 
   @Delete(':userId')
-  async deleteUser(@Query('userId') userId: string) {
+  async deleteUser(@Param('userId') userId: string) {
     return await this.usersService.deleteUser(userId);
   }
 

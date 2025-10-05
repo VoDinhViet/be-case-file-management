@@ -10,6 +10,8 @@ import type {
   FindManyQueryConfig,
 } from '../../database/types/drizzle';
 import { hashPassword } from '../../utils/password.util';
+import { JwtPayloadType } from '../auth/types/jwt-payload.type';
+import { CreateUserReqDto } from './dto/create-user.req.dto';
 import { PageUserReqDto } from './dto/page-user.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 
@@ -111,5 +113,16 @@ export class UsersService {
         fullName: usersTable.fullName,
       })
       .from(usersTable);
+  }
+
+  async create(reqDto: CreateUserReqDto, payload: JwtPayloadType) {
+    return this.db
+      .insert(usersTable)
+      .values({
+        ...reqDto,
+        createdBy: payload.id,
+        password: await hashPassword(reqDto.password),
+      })
+      .returning();
   }
 }

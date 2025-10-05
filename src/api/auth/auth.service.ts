@@ -166,11 +166,11 @@ export class AuthService {
     if (isExistUser) {
       throw new ValidationException(ErrorCode.U002);
     }
-    const isExistReferralCpde = await this.existReferralCode(
+    const isExistReferralCode = await this.existReferralCode(
       reqDto.referralCode,
     );
-    if (!isExistReferralCpde) {
-      throw new UnauthorizedException();
+    if (!isExistReferralCode) {
+      throw new ValidationException(ErrorCode.U005);
     }
 
     //-------------------------------------------------------

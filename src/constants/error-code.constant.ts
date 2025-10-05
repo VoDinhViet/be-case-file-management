@@ -9,6 +9,9 @@ export enum ErrorCode {
 
   U001 = 'user.error.not_found',
   U002 = 'user.error.already_exists',
+  U003 = 'user.error.wrong_password',
+  U004 = 'user.error.forbidden',
+  U005 = 'user.error.invalid_referral_code',
 
   // Template
   T001 = 'template.error.not_found',
