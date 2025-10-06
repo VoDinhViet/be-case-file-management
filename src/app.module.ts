@@ -8,6 +8,7 @@ import { AuthModule } from './api/auth/auth.module';
 import authConfig from './api/auth/config/auth.config';
 import { CasesModule } from './api/cases/cases.module';
 import { NotificationsModule } from './api/notifications/notifications.module';
+import { ReportsModule } from './api/reports/reports.module';
 import { SharedModule } from './api/shared/shared.module';
 import { TemplatesModule } from './api/templates/templates.module';
 import { UsersController } from './api/users/users.controller';
@@ -48,6 +49,7 @@ import { DatabaseModule } from './database/database.module';
     TemplatesModule,
     CasesModule,
     NotificationsModule,
+    ReportsModule,
   ],
   controllers: [AppController, UsersController],
   providers: [AppService],

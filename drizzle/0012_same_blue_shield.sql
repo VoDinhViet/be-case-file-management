@@ -1,0 +1,1 @@
+ALTER TABLE "cases" ALTER COLUMN "article"  SET DEFAULT '174';

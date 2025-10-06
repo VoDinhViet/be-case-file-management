@@ -3,14 +3,31 @@ import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { templateFieldsTable, templatesTable } from './templates.schema';
 import { usersTable } from './users.schema';
 
+// trang  thái vụ án
+export enum CaseStatusEnum {
+  // chưa xử lý
+  PENDING = 'PENDING',
+  // đang xử lý
+  IN_PROGRESS = 'IN_PROGRESS',
+  // đã hoàn thành
+  COMPLETED = 'COMPLETED',
+  // đã hủy
+  CANCELED = 'CANCELED',
+}
+
 export const casesTable = pgTable('cases', {
   id: uuid().defaultRandom().primaryKey(),
   templateId: uuid('template_id')
     .notNull()
     .references(() => templatesTable.id),
-  // mã vụ án
+  // điều  174
+  article: varchar('article', { length: 50 }).notNull().default('174'), // điều luật
   name: varchar('name', { length: 255 }).notNull(), // tên vụ án
-  // tên vụ án
+  status: varchar('status', { length: 50 })
+    .$type<CaseStatusEnum>()
+    .notNull()
+    .default(CaseStatusEnum.PENDING), // trạng thái vụ án
+  // nội dung vụ án
   description: text('description'), // mô tả vụ án
   // ngày bắt đầu vụ án
   startedAt: timestamp('started_at').defaultNow(),
