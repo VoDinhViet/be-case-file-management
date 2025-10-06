@@ -1,19 +1,14 @@
 // dto/create-case.dto.ts
+import { CaseStatusEnum } from '../../../database/schemas';
 import {
   ClassFieldOptional,
   DateField,
+  DateFieldOptional,
+  EnumFieldOptional,
   StringField,
   StringFieldOptional,
   UUIDField,
 } from '../../../decorators/field.decorators';
-
-// Có thể enum các loại field nếu muốn
-export enum FieldType {
-  TEXT = 'text',
-  NUMBER = 'number',
-  SELECT = 'select',
-  TEXTAREA = 'textarea',
-}
 
 // DTO cho field động
 export class DynamicFieldDto {
@@ -22,30 +17,40 @@ export class DynamicFieldDto {
 
   @StringFieldOptional()
   value?: string;
-
-  // @StringField()
-  // fieldType?: FieldType;
 }
 
 // DTO chính tạo case
 export class CreateCaseDto {
-  @UUIDField()
-  templateId: string;
+  @StringField()
+  templateId!: string;
+
+  @StringField()
+  applicableLaw: string; // Điều luật áp dụng
+
+  @StringField()
+  numberOfDefendants: string; // Số bị cáo
+
+  @StringField()
+  crimeType: string; // Loại tội phạm
+
+  @StringField()
+  name: string; // Tên vụ án
+
+  @EnumFieldOptional(() => CaseStatusEnum, { default: CaseStatusEnum.PENDING })
+  status?: CaseStatusEnum; // Trạng thái vụ án, mặc định PENDING
 
   @StringFieldOptional()
-  description: string;
+  description?: string; // Mô tả vụ án
 
   @DateField()
-  startDate: string;
+  startDate: Date; // Ngày bắt đầu vụ án
 
-  @DateField()
-  endDate: string;
+  @DateFieldOptional()
+  endDate?: Date; // Ngày kết thúc vụ án
 
-  // Người xử lý
   @UUIDField()
-  userId: string;
+  userId: string; // Người tạo vụ án
 
-  // Các field động từ form
   @ClassFieldOptional(() => DynamicFieldDto, {
     isArray: true,
     description: 'Các trường động theo template',

@@ -20,9 +20,10 @@ export const casesTable = pgTable('cases', {
   templateId: uuid('template_id')
     .notNull()
     .references(() => templatesTable.id),
-  // điều  174
-  article: varchar('article', { length: 50 }).notNull().default('174'), // điều luật
-  name: varchar('name', { length: 255 }).notNull(), // tên vụ án
+  applicableLaw: varchar('applicable_law', { length: 255 }), // điều luật áp dụng
+  numberOfDefendants: varchar('number_of_defendants', { length: 50 }), // số bị cáo
+  crimeType: varchar('crime_type', { length: 100 }), // loại tội phạm
+  name: varchar('name', { length: 255 }), // tên vụ án
   status: varchar('status', { length: 50 })
     .$type<CaseStatusEnum>()
     .notNull()
@@ -30,9 +31,9 @@ export const casesTable = pgTable('cases', {
   // nội dung vụ án
   description: text('description'), // mô tả vụ án
   // ngày bắt đầu vụ án
-  startedAt: timestamp('started_at').defaultNow(),
+  startDate: timestamp('start_date').notNull(),
   // ngày kết thúc vụ án
-  endedAt: timestamp('ended_at'),
+  endDate: timestamp('end_date'),
   userId: uuid('user_id'), // người tạo vụ án
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
