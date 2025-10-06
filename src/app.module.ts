@@ -6,7 +6,10 @@ import { CacheableMemory } from 'cacheable';
 import Keyv from 'keyv';
 import { AuthModule } from './api/auth/auth.module';
 import authConfig from './api/auth/config/auth.config';
+import { CasesModule } from './api/cases/cases.module';
+import { NotificationsModule } from './api/notifications/notifications.module';
 import { SharedModule } from './api/shared/shared.module';
+import { TemplatesModule } from './api/templates/templates.module';
 import { UsersController } from './api/users/users.controller';
 import { UsersModule } from './api/users/users.module';
 import { AppController } from './app.controller';
@@ -16,8 +19,6 @@ import appConfig from './config/app.config';
 import { AllConfigType } from './config/config.type';
 import databaseConfig from './database/config/database.config';
 import { DatabaseModule } from './database/database.module';
-import { TemplatesModule } from './api/templates/templates.module';
-import { CasesModule } from './api/cases/cases.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -46,6 +47,7 @@ import { CasesModule } from './api/cases/cases.module';
     UsersModule,
     TemplatesModule,
     CasesModule,
+    NotificationsModule,
   ],
   controllers: [AppController, UsersController],
   providers: [AppService],

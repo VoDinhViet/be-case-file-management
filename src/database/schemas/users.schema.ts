@@ -15,6 +15,8 @@ export const usersTable = pgTable(
     referralCode: varchar('referral_code', { length: 64 }),
     roleId: uuid('role_id'),
     createdBy: uuid('created_by'),
+    // save token expo
+    tokenExpo: varchar('token_expo', { length: 512 }).unique(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
