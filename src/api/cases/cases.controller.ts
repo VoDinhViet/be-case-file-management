@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CasesService } from './cases.service';
@@ -21,5 +21,13 @@ export class CasesController {
   @Get()
   async getPageCases(@Query() reqDto: PageUserReqDto) {
     return this.casesService.getPageCases(reqDto);
+  }
+
+  @ApiAuth({
+    summary: 'Get case by ID',
+  })
+  @Get(':caseId')
+  async getCaseById(@Param('caseId') caseId: string) {
+    return this.casesService.getCaseById(caseId);
   }
 }

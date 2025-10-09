@@ -17,4 +17,8 @@ export enum ErrorCode {
   T001 = 'template.error.not_found',
   T002 = 'template.error.group_not_found',
   T003 = 'template.error.title_already_exists',
+  // Case
+  C001 = 'case.error.not_found',
+  C002 = 'case.error.field_not_found',
+  C003 = 'case.error.invalid_status_transition',
 }

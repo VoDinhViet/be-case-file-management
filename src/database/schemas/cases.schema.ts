@@ -5,14 +5,11 @@ import { usersTable } from './users.schema';
 
 // trang  thái vụ án
 export enum CaseStatusEnum {
-  // chưa xử lý
-  PENDING = 'PENDING',
-  // đang xử lý
-  IN_PROGRESS = 'IN_PROGRESS',
-  // đã hoàn thành
-  COMPLETED = 'COMPLETED',
-  // đã hủy
-  CANCELED = 'CANCELED',
+  PENDING = 'PENDING', // Chưa xử lý
+  IN_PROGRESS = 'IN_PROGRESS', // Đang xử lý
+  COMPLETED = 'COMPLETED', // Đã đóng
+  EXPIRING = 'EXPIRING', // Sắp hết hạn
+  OVERDUE = 'OVERDUE', // Quá hạn
 }
 
 export const casesTable = pgTable('cases', {

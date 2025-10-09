@@ -3,6 +3,7 @@ import { count, desc, eq, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
+import { ErrorCode } from '../../constants/error-code.constant';
 import { DRIZZLE } from '../../database/database.module';
 import {
   caseFieldsTable,
@@ -14,6 +15,7 @@ import type {
   DrizzleDB,
   FindManyQueryConfig,
 } from '../../database/types/drizzle';
+import { ValidationException } from '../../exceptions/validation.exception';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 
@@ -114,5 +116,32 @@ export class CasesService {
 
     const meta = new OffsetPaginationDto(totalCount, reqDto);
     return new OffsetPaginatedDto(entities, meta);
+  }
+
+  async getCaseById(caseId: string) {
+    const caseItem = await this.db.query.casesTable.findFirst({
+      where: eq(casesTable.id, caseId),
+      with: {
+        template: {
+          with: {
+            groups: {
+              with: {
+                fields: true,
+              },
+            },
+          },
+        },
+        fields: {
+          with: {
+            field: true,
+          },
+        },
+        assignee: true,
+      },
+    });
+    if (!caseItem) {
+      throw new ValidationException(ErrorCode.C001);
+    }
+    return caseItem;
   }
 }
