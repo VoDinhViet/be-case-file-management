@@ -2,6 +2,8 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, type ApiPropertyOptions } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsBoolean,
   IsDate,
   IsDefined,
@@ -46,6 +48,8 @@ interface IStringFieldOptions extends IFieldOptions {
   maxLength?: number;
   toLowerCase?: boolean;
   toUpperCase?: boolean;
+  arrayNotEmpty?: boolean;
+  arrayMaxSize?: number;
 }
 
 interface IEnumFieldOptions extends IFieldOptions {
@@ -105,53 +109,69 @@ export function NumberFieldOptional(
   );
 }
 
-export function StringField(
+/**
+ * Hàm build decorator cho string field
+ */
+function buildStringFieldDecorators(
   options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
-): PropertyDecorator {
-  const decorators = [
+) {
+  const decorators: PropertyDecorator[] = [
     Type(() => String),
     Transform(({ value }) => (value === '' ? null : value), {
       toClassOnly: true,
     }),
-    IsString({ each: options.each }),
   ];
 
+  // Nếu là mảng string[]
+  if (options.each) {
+    decorators.push(IsArray());
+    if (options.arrayNotEmpty) decorators.push(ArrayNotEmpty());
+    if (options.arrayMaxSize)
+      decorators.push(MaxLength(options.arrayMaxSize, { each: false }));
+  }
+
+  decorators.push(IsString({ each: options.each }));
+
+  // nullable
   if (options.nullable) {
     decorators.push(IsNullable({ each: options.each }));
   } else {
     decorators.push(NotEquals(null, { each: options.each }));
   }
 
+  // swagger
   if (options.swagger !== false) {
     const { required = true, ...restOptions } = options;
     decorators.push(
       ApiProperty({
         type: String,
+        isArray: options.each,
         required: !!required,
         ...restOptions,
-        isArray: options.each,
       }),
     );
   }
 
-  const minLength = options.minLength || 1;
+  // min/max length
+  const minLength = options.minLength ?? 1;
   decorators.push(MinLength(minLength, { each: options.each }));
 
   if (options.maxLength) {
     decorators.push(MaxLength(options.maxLength, { each: options.each }));
   }
 
-  if (options.toLowerCase) {
-    decorators.push(ToLowerCase());
-  }
+  // lowercase / uppercase
+  if (options.toLowerCase) decorators.push(ToLowerCase());
+  if (options.toUpperCase) decorators.push(ToUpperCase());
 
-  if (options.toUpperCase) {
-    decorators.push(ToUpperCase());
-  }
-
-  return applyDecorators(...decorators);
+  return decorators;
 }
 
+export function StringField(
+  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+): PropertyDecorator {
+  return applyDecorators(...buildStringFieldDecorators(options));
+}
 export function TokenField(
   options: Omit<ApiPropertyOptions, 'type'> & ITokenFieldOptions = {},
 ): PropertyDecorator {

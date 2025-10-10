@@ -1,0 +1,1 @@
+ALTER TABLE "case_phases" ADD CONSTRAINT "case_phases_case_id_cases_id_fk" FOREIGN KEY ("case_id") REFERENCES "public"."cases"("id") ON DELETE no action ON UPDATE no action;

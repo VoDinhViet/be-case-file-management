@@ -1,4 +1,3 @@
-// dto/create-case.dto.ts
 import { CaseStatusEnum } from '../../../database/schemas';
 import {
   ClassFieldOptional,
@@ -10,8 +9,11 @@ import {
   UUIDField,
 } from '../../../decorators/field.decorators';
 
-// DTO cho field động
+// DTO cho field động trong group
 export class DynamicFieldDto {
+  @UUIDField()
+  groupId: string; // ✅ ID của group chứa field này
+
   @StringField()
   fieldName: string;
 
@@ -19,7 +21,7 @@ export class DynamicFieldDto {
   value?: string;
 }
 
-// DTO chính tạo case
+// DTO chính để tạo vụ án
 export class CreateCaseDto {
   @StringField()
   templateId!: string;
@@ -37,7 +39,7 @@ export class CreateCaseDto {
   name: string; // Tên vụ án
 
   @EnumFieldOptional(() => CaseStatusEnum, { default: CaseStatusEnum.PENDING })
-  status?: CaseStatusEnum; // Trạng thái vụ án, mặc định PENDING
+  status?: CaseStatusEnum; // Trạng thái vụ án
 
   @StringFieldOptional()
   description?: string; // Mô tả vụ án
@@ -53,7 +55,7 @@ export class CreateCaseDto {
 
   @ClassFieldOptional(() => DynamicFieldDto, {
     isArray: true,
-    description: 'Các trường động theo template',
+    description: 'Các trường động theo template, chia theo group',
   })
   fields?: DynamicFieldDto[];
 }

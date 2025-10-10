@@ -1,3 +1,4 @@
+export * from './case-phases.schema';
 export * from './cases.schema';
 export * from './notification.schema';
 export * from './referral.schema';

@@ -21,4 +21,6 @@ export enum ErrorCode {
   C001 = 'case.error.not_found',
   C002 = 'case.error.field_not_found',
   C003 = 'case.error.invalid_status_transition',
+  // Phase
+  P001 = 'phase.error.not_found',
 }
