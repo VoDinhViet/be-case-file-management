@@ -59,10 +59,11 @@ export class CasesService {
   }
   async createCase(reqDto: CreateCaseDto) {
     console.log('Creating case with data:', reqDto);
+
     return this.db.transaction(async (tx) => {
       //----------------------------------------------------------------
-      // 1. Thêm mới case
-      //-----------------------------------------------------------------
+      // 1️⃣ Thêm mới case
+      //----------------------------------------------------------------
       const [newCase] = await tx
         .insert(casesTable)
         .values({
@@ -71,63 +72,87 @@ export class CasesService {
         .returning();
 
       //----------------------------------------------------------------
-      // 2. If not fields, return newCase
-      //-----------------------------------------------------------------
+      // 2️⃣ Nếu không có fields, return ngay newCase
+      //----------------------------------------------------------------
       if (!reqDto.fields?.length) return newCase;
 
-      // 2️⃣ Lấy group theo template
+      //----------------------------------------------------------------
+      // 3️⃣ Lấy group theo template
+      //----------------------------------------------------------------
       const templateGroups = await this.getTemplateGroups(reqDto.templateId);
       if (!templateGroups.length) return newCase;
-      // 3️⃣ Tạo group trong case_groups
+
+      //----------------------------------------------------------------
+      // 4️⃣ Tạo group trong case_groups, lưu cả templateGroupId
+      //----------------------------------------------------------------
       const caseGroupsToInsert = templateGroups.map((g) => ({
         caseId: newCase.id,
-        // groupId: g.id,
+        groupId: g.id, // giữ id gốc của template
         title: g.title,
         description: g.description,
       }));
+
       const insertedCaseGroups = await tx
         .insert(caseGroupsTable)
         .values(caseGroupsToInsert)
         .returning();
+
       console.log('Inserted Case Groups:', insertedCaseGroups);
+
+      // Map templateGroupId -> new caseGroup.id
       const groupMap = new Map(
         insertedCaseGroups.map((g) => [g.groupId, g.id]),
       );
+      console.log('Group Map:', groupMap);
 
       //----------------------------------------------------------------
-      // 3. Lấy danh sách field từ template
-      //-----------------------------------------------------------------
-      // 4️⃣ Lấy field theo template (kèm groupId)
+      // 5️⃣ Lấy danh sách field từ template
+      //----------------------------------------------------------------
       const templateFields = await this.getTemplateFields(reqDto.templateId);
       if (!templateFields.length) return newCase;
 
+      // Map fieldName -> { fieldId, groupId, fieldLabel }
       const fieldMap = new Map(
         templateFields.map((f) => [
           f.fieldName,
           { fieldId: f.fieldId, groupId: f.groupId, fieldLabel: f.fieldLabel },
         ]),
       );
+
       console.log('Field Map:', fieldMap);
-      // 3. Insert vào bảng caseFields
-      // 5️⃣ Lọc và tạo dữ liệu cho caseFields
+
+      //----------------------------------------------------------------
+      // 6️⃣ Tạo dữ liệu cho caseFields
+      //----------------------------------------------------------------
       const caseFieldValues =
         reqDto.fields
           ?.filter((f) => fieldMap.has(f.fieldName))
           .map((f) => {
-            const { fieldId, groupId, fieldLabel } = fieldMap.get(f.fieldName)!;
+            const {
+              fieldId,
+              groupId: templateGroupId,
+              fieldLabel,
+            } = fieldMap.get(f.fieldName)!;
+
             return {
               caseId: newCase.id,
-              groupId: groupMap.get(groupId)!,
+              groupId: groupMap.get(templateGroupId)!, // lấy id từ map
               fieldId,
               fieldLabel: fieldLabel || '',
               fieldName: f.fieldName,
               fieldValue: f.value || '',
             };
           }) ?? [];
+
+      console.log('Case Field Values to Insert:', caseFieldValues);
+
       if (caseFieldValues.length) {
         await tx.insert(caseFieldsTable).values(caseFieldValues);
       }
 
+      //----------------------------------------------------------------
+      // 7️⃣ Return case mới tạo
+      //----------------------------------------------------------------
       return newCase;
     });
   }
@@ -168,6 +193,11 @@ export class CasesService {
       where: eq(casesTable.id, caseId),
       with: {
         assignee: true,
+        groups: {
+          with: {
+            fields: true,
+          },
+        },
       },
     });
     if (!caseItem) {
