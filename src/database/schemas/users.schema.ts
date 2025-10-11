@@ -16,7 +16,7 @@ export const usersTable = pgTable(
     roleId: uuid('role_id'),
     createdBy: uuid('created_by'),
     // save token expo
-    tokenExpo: varchar('token_expo', { length: 512 }).unique(),
+    tokenExpo: varchar('token_expo', { length: 512 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
