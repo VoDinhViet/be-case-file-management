@@ -1,6 +1,9 @@
 import { relations } from 'drizzle-orm';
 import {
+  boolean,
   foreignKey,
+  integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -8,7 +11,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { casePhasesTable } from './case-phases.schema';
-import { templateFieldsTable, templatesTable } from './templates.schema';
+import { templatesTable } from './templates.schema';
 import { usersTable } from './users.schema';
 
 // Trạng thái vụ án
@@ -60,12 +63,11 @@ export const caseGroupsTable = pgTable(
   'case_groups',
   {
     id: uuid().defaultRandom().primaryKey(),
-    caseId: uuid('case_id')
-      .notNull()
-      .references(() => casesTable.id),
-    groupId: uuid('group_id'), // optional, nếu muốn liên kết với template_groups
+    groupId: uuid('group_id'),
+    caseId: uuid('case_id').notNull(),
     title: varchar('title', { length: 100 }).notNull(),
     description: text('description'),
+    index: integer().notNull().default(0),
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [
@@ -81,12 +83,19 @@ export const caseFieldsTable = pgTable(
   'case_fields',
   {
     id: uuid().defaultRandom().primaryKey(),
-    caseId: uuid('case_id').references(() => casesTable.id),
-    groupId: uuid('group_id').references(() => caseGroupsTable.id),
-    fieldId: uuid('field_id').references(() => templateFieldsTable.id), // optional
-    fieldLabel: varchar('field_label', { length: 100 }),
-    fieldName: varchar('field_name', { length: 100 }),
-    fieldValue: text('field_value'),
+    caseId: uuid('case_id'),
+    groupId: uuid('group_id'),
+    fieldLabel: varchar('field_label', { length: 100 }).notNull(),
+    fieldName: varchar('field_name', { length: 100 }).notNull(),
+    fieldType: varchar('field_type', { length: 50 }).notNull().default('text'),
+    fieldValue: text('field_value'), // lưu giá trị người dùng nhập
+    isRequired: boolean('is_required').notNull().default(false),
+    placeholder: varchar('placeholder', { length: 255 }),
+    options: jsonb().$type<string[]>().default([]),
+    defaultValue: varchar('default_value', { length: 255 }),
+    isEditable: boolean('is_editable').notNull().default(true),
+    index: integer().notNull().default(0),
+    description: text('description'),
     createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [
@@ -124,10 +133,6 @@ export const caseFieldsTableRelations = relations(
     group: one(caseGroupsTable, {
       fields: [caseFieldsTable.groupId],
       references: [caseGroupsTable.id],
-    }),
-    templateField: one(templateFieldsTable, {
-      fields: [caseFieldsTable.fieldId],
-      references: [templateFieldsTable.id],
     }),
   }),
 );

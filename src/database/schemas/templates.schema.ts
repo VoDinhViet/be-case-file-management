@@ -43,8 +43,8 @@ export const templateFieldsTable = pgTable('template_fields', {
   groupId: uuid('group_id')
     .notNull()
     .references(() => templateGroupsTable.id),
-  fieldLabel: varchar('field_label', { length: 100 }).notNull(),
-  fieldName: varchar('field_name', { length: 100 }).notNull(),
+  fieldLabel: varchar('field_label', { length: 100 }),
+  fieldName: varchar('field_name', { length: 100 }),
   fieldType: varchar('field_type', { length: 50 }).notNull(),
   isRequired: boolean('is_required').notNull().default(false),
   placeholder: varchar('placeholder', { length: 255 }),
