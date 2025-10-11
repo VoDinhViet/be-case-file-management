@@ -116,7 +116,7 @@ export class ReportsService {
       .from(casesTable)
       .where(
         and(
-          eq(casesTable.userId, userId),
+          ...(userId ? [eq(casesTable.userId, userId)] : []),
           ...(reqDto.startDate
             ? [gte(casesTable.endDate, reqDto.startDate)]
             : []),

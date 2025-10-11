@@ -19,9 +19,9 @@ export class ReportsController {
   @ApiAuth({
     summary: 'Thống kê số vụ án của mình',
   })
-  @Get('case/:userId')
+  @Get('case')
   async caseStatistics(
-    @Param('userId') userId: string,
+    @Query('userId') userId: string,
     @Query() reqDto: GetMyCaseStatisticsReqDto,
   ) {
     return this.reportsService.caseStatistics(reqDto, userId);
