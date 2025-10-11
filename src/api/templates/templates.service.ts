@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
@@ -80,6 +80,16 @@ export class TemplatesService {
   async getPageTemplates(reqDto: PageTemplateReqDto) {
     const baseConfig: FindManyQueryConfig<typeof this.db.query.templatesTable> =
       {
+        where: and(
+          or(
+            ...(reqDto.q
+              ? [
+                  sql`unaccent(${templatesTable.title}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                  sql`unaccent(${templatesTable.description}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                ]
+              : []),
+          ),
+        ),
         with: {
           groups: {
             with: {
