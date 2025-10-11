@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
@@ -16,6 +16,17 @@ export class ReportsController {
     return this.reportsService.exportFromTemplate(res);
   }
 
+  @ApiAuth({
+    summary: 'Thống kê số vụ án của mình',
+  })
+  @Get('case/:userId')
+  async caseStatistics(
+    @Param('userId') userId: string,
+    @Query() reqDto: GetMyCaseStatisticsReqDto,
+  ) {
+    return this.reportsService.caseStatistics(reqDto, userId);
+  }
+
   // thông kế số vụ án của mình
   @ApiAuth({
     summary: 'Thống kê số vụ án của mình',
@@ -25,6 +36,6 @@ export class ReportsController {
     @CurrentUser() payload: JwtPayloadType,
     @Query() reqDto: GetMyCaseStatisticsReqDto,
   ) {
-    return this.reportsService.myCaseStatistics(reqDto, payload);
+    return this.reportsService.caseStatistics(reqDto, payload.id);
   }
 }

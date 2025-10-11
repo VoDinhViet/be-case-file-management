@@ -5,5 +5,5 @@ export class GetMyCaseStatisticsReqDto {
   startDate?: Date;
 
   @DateFieldOptional()
-  endDate: string;
+  endDate?: Date;
 }

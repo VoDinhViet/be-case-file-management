@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Docxtemplater from 'docxtemplater';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import { Response } from 'express';
 import * as fs from 'fs';
+import { DateTime } from 'luxon';
 import * as path from 'path';
 import PizZip from 'pizzip';
 import { DRIZZLE } from '../../database/database.module';
 import { casesTable } from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
-import { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { GetMyCaseStatisticsReqDto } from './dto/get-my-case-statistics.req.dto';
 
 @Injectable()
@@ -77,10 +77,19 @@ export class ReportsService {
     }
   }
 
-  async myCaseStatistics(
-    reqDto: GetMyCaseStatisticsReqDto,
-    payload: JwtPayloadType,
-  ) {
+  async caseStatistics(reqDto: GetMyCaseStatisticsReqDto, userId: string) {
+    if (reqDto.startDate) {
+      reqDto.startDate = DateTime.fromJSDate(reqDto.startDate)
+        .setZone('Asia/Ho_Chi_Minh')
+        .startOf('day')
+        .toJSDate();
+    }
+    if (reqDto.endDate) {
+      reqDto.endDate = DateTime.fromJSDate(reqDto.endDate)
+        .setZone('Asia/Ho_Chi_Minh')
+        .endOf('day')
+        .toJSDate();
+    }
     const [result] = await this.db
       .select({
         pending:
@@ -95,17 +104,28 @@ export class ReportsService {
           sql<number>`COALESCE(SUM(CASE WHEN ${casesTable.status} = 'COMPLETED' THEN 1 ELSE 0 END), 0)`.mapWith(
             Number,
           ),
-        expiring:
-          sql<number>`COALESCE(SUM(CASE WHEN ${casesTable.status} = 'EXPIRING' THEN 1 ELSE 0 END), 0)`.mapWith(
+        onHold:
+          sql<number>`COALESCE(SUM(CASE WHEN ${casesTable.status} = 'ON_HOLD' THEN 1 ELSE 0 END), 0)`.mapWith(
             Number,
           ),
-        overdue:
-          sql<number>`COALESCE(SUM(CASE WHEN ${casesTable.status} = 'OVERDUE' THEN 1 ELSE 0 END), 0)`.mapWith(
+        cancelled:
+          sql<number>`COALESCE(SUM(CASE WHEN ${casesTable.status} = 'CANCELLED' THEN 1 ELSE 0 END), 0)`.mapWith(
             Number,
           ),
       })
       .from(casesTable)
-      .where(eq(casesTable.userId, payload.id));
+      .where(
+        and(
+          eq(casesTable.userId, userId),
+          ...(reqDto.startDate
+            ? [gte(casesTable.endDate, reqDto.startDate)]
+            : []),
+          ...(reqDto.endDate
+            ? [lte(casesTable.startDate, reqDto.endDate)]
+            : []),
+        ),
+      );
+
     return result;
   }
 }
