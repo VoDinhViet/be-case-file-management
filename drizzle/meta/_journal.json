@@ -134,6 +134,20 @@
       "when": 1760162184399,
       "tag": "0018_minor_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1760164296172,
+      "tag": "0019_purple_doctor_doom",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1760164347589,
+      "tag": "0020_glamorous_penance",
+      "breakpoints": true
     }
   ]
 }

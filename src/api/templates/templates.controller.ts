@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
 import { CreateTemplateReqDto } from './dto/create-template.req.dto';
 import { PageTemplateReqDto } from './dto/page-template.req.dto';
@@ -36,5 +45,11 @@ export class TemplatesController {
   @Get(':templateId')
   async getTemplateById(@Param('templateId') templateId: string) {
     return this.templatesService.getTemplateById(templateId);
+  }
+
+  @ApiAuth()
+  @Delete(':templateId')
+  async deleteTemplate(@Param('templateId') templateId: string) {
+    return this.templatesService.deleteTemplate(templateId);
   }
 }

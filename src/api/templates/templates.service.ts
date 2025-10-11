@@ -254,4 +254,16 @@ export class TemplatesService {
       });
     });
   }
+
+  async deleteTemplate(templateId: string) {
+    const template = await this.db.query.templatesTable.findFirst({
+      where: eq(templatesTable.id, templateId),
+      columns: { id: true },
+    });
+    if (!template) throw new ValidationException(ErrorCode.T001);
+
+    return this.db
+      .delete(templatesTable)
+      .where(eq(templatesTable.id, templateId));
+  }
 }
