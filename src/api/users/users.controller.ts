@@ -8,6 +8,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiAuth } from '../../decorators/http.decorators';
 import { Roles } from '../../decorators/role.decorator';
@@ -47,6 +48,12 @@ export class UsersController {
     @Query() reqDto: PageUserReqDto,
   ) {
     return await this.usersService.getPageUsers(reqDto);
+  }
+
+  @ApiAuth()
+  @Get(':userId')
+  async getUserById(@Param('userId') userId: string) {
+    return this.usersService.findById(userId);
   }
 
   @Put(':userId')
@@ -92,8 +99,9 @@ export class UsersController {
   @ApiAuth({
     summary: 'Select all users [ADMIN]',
   })
-  @Get('all')
-  async selectAllUsers() {
-    return this.usersService.selectAllUsers();
+  @ApiQuery({ name: 'q', required: false })
+  @Get('all/select')
+  async selectUsers(@Query('q') q?: string) {
+    return this.usersService.selectUsers(q);
   }
 }

@@ -41,7 +41,7 @@
     "docx": "^9.5.1",
     "docxtemplater": "^3.66.5",
     "dotenv": "^17.2.2",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^0.44.6",
     "expo-server-sdk": "^4.0.0",
     "helmet": "^8.1.0",
     "keyv": "^5.5.1",

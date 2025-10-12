@@ -105,14 +105,25 @@ export class UsersService {
     return createdCode;
   }
 
-  selectAllUsers() {
+  selectUsers(q: string | undefined) {
     return this.db
       .select({
         id: usersTable.id,
-        phone: usersTable.phone,
         fullName: usersTable.fullName,
+        phone: usersTable.phone,
+        role: usersTable.role,
       })
-      .from(usersTable);
+      .from(usersTable)
+      .where(
+        q
+          ? or(
+              sql`unaccent(${usersTable.phone}) ILIKE unaccent(${`%${q}%`})`,
+              sql`unaccent(${usersTable.fullName}) ILIKE unaccent(${`%${q}%`})`,
+            )
+          : undefined,
+      )
+      .limit(20)
+      .orderBy(desc(usersTable.createdAt));
   }
 
   async create(reqDto: CreateUserReqDto, payload: JwtPayloadType) {
