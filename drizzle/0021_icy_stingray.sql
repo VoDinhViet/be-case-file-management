@@ -1,0 +1,1 @@
+ALTER TABLE "case_phases" ADD COLUMN "note" text;

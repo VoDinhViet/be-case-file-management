@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CasesService } from './cases.service';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
+import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
+import { UpdateCaseReqDto } from './dto/update-case.req.dto';
 
 @Controller('cases')
 export class CasesController {
@@ -32,6 +34,18 @@ export class CasesController {
     return this.casesService.getCaseById(caseId);
   }
 
+  @ApiAuth({
+    summary: 'Update case by ID',
+  })
+  @Put(':caseId')
+  async updateCaseById(
+    @Param('caseId') caseId: string,
+    @Body() reqDto: UpdateCaseReqDto,
+  ) {
+    console.log('Updating case:', caseId, reqDto);
+    return this.casesService.updateCaseById(caseId, reqDto);
+  }
+
   // add task to case
   @ApiAuth({
     summary: 'Add phase to case',
@@ -43,6 +57,18 @@ export class CasesController {
   ) {
     console.log('Adding phase to case:', caseId, reqDto);
     return this.casesService.addPhaseToCase(caseId, reqDto);
+  }
+
+  //update phases by case id
+  @ApiAuth({
+    summary: 'Update phases by case ID',
+  })
+  @Put('phases/:phaseId')
+  async updatePhasesByCaseId(
+    @Param('phaseId') phaseId: string,
+    @Body() reqDto: UpdatePhasesReqDto,
+  ) {
+    return this.casesService.updatePhasesByCaseId(phaseId, reqDto);
   }
 
   @ApiAuth({

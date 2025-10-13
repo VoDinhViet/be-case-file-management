@@ -28,6 +28,7 @@ export const casePhasesTable = pgTable(
     isCompleted: boolean('is_completed').default(false).notNull(), // trạng thái hoàn thành
     createdAt: timestamp('created_at').defaultNow(),
     tasks: jsonb('tasks').default('[]').notNull(), // danh sách công việc trong giai đoạn
+    note: text('note'), // ghi chú
     updatedAt: timestamp('updated_at')
       .defaultNow()
       .$onUpdate(() => new Date()),

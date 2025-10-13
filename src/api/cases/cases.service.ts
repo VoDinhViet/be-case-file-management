@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { count, desc, eq, sql } from 'drizzle-orm';
+import { asc, count, desc, eq, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
@@ -21,6 +21,8 @@ import { ValidationException } from '../../exceptions/validation.exception';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
+import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
+import { UpdateCaseReqDto } from './dto/update-case.req.dto';
 
 @Injectable()
 export class CasesService {
@@ -238,7 +240,7 @@ export class CasesService {
   async getPhasesByCaseId(caseId: string) {
     return this.db.query.casePhasesTable.findMany({
       where: eq(casePhasesTable.caseId, caseId),
-      orderBy: [desc(casePhasesTable.order)],
+      orderBy: [asc(casePhasesTable.order)],
     });
   }
 
@@ -266,6 +268,62 @@ export class CasesService {
         .where(eq(casePhasesTable.id, phaseId))
         .returning();
       return updatedPhase;
+    });
+  }
+
+  async updatePhasesByCaseId(phaseId: string, reqDto: UpdatePhasesReqDto) {
+    return this.db.transaction(async (tx) => {
+      //----------------------------------------------------------------
+      // 1. Kiểm tra phase có tồn tại không
+      //-----------------------------------------------------------------
+      const [phaseFound] = await tx
+        .select({ id: casePhasesTable.id })
+        .from(casePhasesTable)
+        .where(eq(casePhasesTable.id, phaseId));
+      if (!phaseFound) {
+        throw new ValidationException(ErrorCode.P001);
+      }
+      //----------------------------------------------------------------
+      // 2. Cập nhật phases
+      //-----------------------------------------------------------------
+      const [updatedPhases] = await tx
+        .update(casePhasesTable)
+        .set({
+          ...reqDto,
+          ...(reqDto.tasks && {
+            tasks: reqDto.tasks?.map((t) => t.name) || [],
+          }),
+        })
+        .where(eq(casePhasesTable.id, phaseId))
+        .returning();
+      return updatedPhases;
+    });
+  }
+
+  async updateCaseById(caseId: string, reqDto: UpdateCaseReqDto) {
+    return this.db.transaction(async (tx) => {
+      //----------------------------------------------------------------
+      // 1️⃣ Kiểm tra case có tồn tại không
+      //----------------------------------------------------------------
+      const [caseFound] = await tx
+        .select({ id: casesTable.id })
+        .from(casesTable)
+        .where(eq(casesTable.id, caseId));
+      if (!caseFound) {
+        throw new ValidationException(ErrorCode.C001);
+      }
+
+      //----------------------------------------------------------------
+      // 2️⃣ Cập nhật case
+      //----------------------------------------------------------------
+      const [updatedCase] = await tx
+        .update(casesTable)
+        .set({
+          ...reqDto,
+        })
+        .where(eq(casesTable.id, caseId))
+        .returning();
+      return updatedCase;
     });
   }
 }

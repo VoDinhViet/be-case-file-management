@@ -23,7 +23,7 @@ export class ReportsService {
         'api',
         'reports',
         'templates',
-        'ke_hoach_dieu_tra.docx',
+        'template.docx',
       );
 
       // 2️⃣ Đọc file
@@ -38,9 +38,11 @@ export class ReportsService {
 
       // 4️⃣ Dữ liệu thay thế - sử dụng cú pháp đơn giản
       const data = {
-        name: 'Nguyễn Văn A',
-        dob: '01/01/1990',
-        address: '123 Đường ABC, Quận 1, TP.HCM',
+        name: 'Vụ án trộm cắp tài sản',
+        fullName: 'Nguyễn Văn A',
+        startDate: '01/11/2024',
+        description:
+          'Khoảng 16 giờ ngày 05/11/2024, Tổ tuần tra Công an huyện Thuận Nam phối hợp Công an xã Phước Diêm tuần tra đảm bảo an ninh, trật tự địa bàn xã Phước Diêm, khi tuần tra đến đoạn đường liên thôn thuộc thôn Lạc Tân 3, xã Phước Diêm, huyện Thuận Nam, tỉnh Ninh Thuận thì phát hiện một nam thanh niên điều khiển xe mô tô hiệu Sirius, biển số 85C-131.62 có biểu hiện nghi vấn nên tiến hành dừng xe để kiểm tra. Quá trình kiểm tra phát hiện ở giỏ phía trước xe mô tô của nam thanh niên có 01 vỏ bao thuốc lá hiệu “Jet” bên trong có 01 túi nilon màu trắng, chứa tinh thể màu trắng. Qua làm việc nam thanh niên khai nhận tên Lê Văn Tuấn, sinh năm 1995, trú thôn Lạc Tân 3, xã Phước Diêm, huyện Thuận Nam, tỉnh Ninh Thuận. Túi nilon chứa tinh thể màu trắng là ma túy đá. Ngày 03/11/2024, Tuấn mua túi ma túy nói trên của một người thanh niên không rõ nhân thân, lai lịch ở Cảng Mũi Né, Phan Thiết, Bình Thuận về để sử dụng. Tuấn đã sử dụng một ít, còn một ít mang theo thì bị lực lượng Công an kiểm tra, phát hiện, bắt giữ.',
         tasks: [
           'Khám xét khẩn cấp chỗ ở của Lê Văn Tuấn.',
           'Trưng cầu giám định ma túy.',

@@ -51,7 +51,7 @@ export class UsersController {
   }
 
   @ApiAuth()
-  @Get(':userId')
+  @Get('profile/:userId')
   async getUserById(@Param('userId') userId: string) {
     return this.usersService.findById(userId);
   }
