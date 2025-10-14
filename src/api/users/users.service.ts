@@ -1,14 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, or, sql } from 'drizzle-orm';
+import { count, desc, eq, getTableColumns, or, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
 import { DRIZZLE } from '../../database/database.module';
-import { referralTable, usersTable } from '../../database/schemas';
-import type {
-  DrizzleDB,
-  FindManyQueryConfig,
-} from '../../database/types/drizzle';
+import { casesTable, referralTable, usersTable } from '../../database/schemas';
+import type { DrizzleDB } from '../../database/types/drizzle';
 import { hashPassword } from '../../utils/password.util';
 import { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { CreateUserReqDto } from './dto/create-user.req.dto';
@@ -29,36 +26,43 @@ export class UsersService {
   }
 
   async getPageUsers(reqDto: PageUserReqDto) {
-    const baseConfig: FindManyQueryConfig<typeof this.db.query.usersTable> = {
-      where: and(
-        or(
-          ...(reqDto.q
-            ? [
-                sql`unaccent(${usersTable.phone}) ILIKE unaccent(${`%${reqDto.q}%`})`,
-                sql`unaccent(${usersTable.fullName}) ILIKE unaccent(${`%${reqDto.q}%`})`,
-              ]
-            : []),
-        ),
-      ),
-    };
+    // Xây dựng điều kiện tìm kiếm
+    const whereConditions = reqDto.q
+      ? or(
+          sql`unaccent(${usersTable.phone}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+          sql`unaccent(${usersTable.fullName}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+        )
+      : undefined;
 
-    const qCount = this.db.query.usersTable.findMany({
-      ...baseConfig,
-      columns: { id: true },
-    });
+    // Query để lấy danh sách user kèm tổng số case
+    const usersQuery = this.db
+      .select({
+        ...getTableColumns(usersTable),
+        // Đếm tổng số case của user
+        totalCases: sql<number>`CAST(COUNT(${casesTable.id}) AS INTEGER)`,
+      })
+      .from(usersTable)
+      .leftJoin(casesTable, eq(casesTable.userId, usersTable.id))
+      .where(whereConditions)
+      .groupBy(usersTable.id)
+      .orderBy(
+        reqDto.order === Order.DESC
+          ? desc(usersTable.createdAt)
+          : desc(usersTable.createdAt),
+      )
+      .limit(reqDto.limit)
+      .offset(reqDto.offset);
 
-    const [entities, [{ totalCount }]] = await Promise.all([
-      this.db.query.usersTable.findMany({
-        ...baseConfig,
-        orderBy: [
-          ...(reqDto.order === Order.DESC
-            ? [desc(usersTable.createdAt)]
-            : [desc(usersTable.createdAt)]),
-        ],
-        limit: reqDto.limit,
-        offset: reqDto.offset,
-      }),
-      this.db.select({ totalCount: count() }).from(sql`${qCount}`),
+    // Query để đếm tổng số user (không bao gồm pagination)
+    const countQuery = this.db
+      .select({ count: count() })
+      .from(usersTable)
+      .where(whereConditions);
+
+    // Thực hiện cả 2 query song song
+    const [entities, [{ count: totalCount }]] = await Promise.all([
+      usersQuery,
+      countQuery,
     ]);
 
     const meta = new OffsetPaginationDto(totalCount, reqDto);

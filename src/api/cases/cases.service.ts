@@ -21,8 +21,8 @@ import { ValidationException } from '../../exceptions/validation.exception';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
-import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
 import { UpdateCaseReqDto } from './dto/update-case.req.dto';
+import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
 
 @Injectable()
 export class CasesService {
@@ -60,17 +60,36 @@ export class CasesService {
       .where(eq(templateGroupsTable.templateId, templateId));
   }
   async createCase(reqDto: CreateCaseDto) {
-    console.log('Creating case with data:', reqDto);
-
     return this.db.transaction(async (tx) => {
       //----------------------------------------------------------------
       // 1️⃣ Thêm mới case
       //----------------------------------------------------------------
+      // 1.1 Validate ngày tháng
+      if (reqDto.endDate && reqDto.startDate) {
+        if (new Date(reqDto.endDate) < new Date(reqDto.startDate)) {
+          throw new ValidationException(
+            ErrorCode.V000,
+            'endDate must be greater than or equal to startDate',
+          );
+        }
+      }
+
+      const caseInsert: typeof casesTable.$inferInsert = {
+        templateId: reqDto.templateId,
+        applicableLaw: reqDto.applicableLaw,
+        numberOfDefendants: reqDto.numberOfDefendants,
+        crimeType: reqDto.crimeType,
+        name: reqDto.name,
+        status: reqDto.status,
+        description: reqDto.description,
+        startDate: reqDto.startDate,
+        endDate: reqDto.endDate,
+        userId: reqDto.userId,
+      };
+
       const [newCase] = await tx
         .insert(casesTable)
-        .values({
-          ...reqDto,
-        })
+        .values(caseInsert)
         .returning();
 
       //----------------------------------------------------------------
@@ -99,13 +118,10 @@ export class CasesService {
         .values(caseGroupsToInsert)
         .returning();
 
-      console.log('Inserted Case Groups:', insertedCaseGroups);
-
       // Map templateGroupId -> new caseGroup.id
       const groupMap = new Map(
         insertedCaseGroups.map((g) => [g.groupId, g.id]),
       );
-      console.log('Group Map:', groupMap);
 
       //----------------------------------------------------------------
       // 5️⃣ Lấy danh sách field từ template
@@ -113,40 +129,48 @@ export class CasesService {
       const templateFields = await this.getTemplateFields(reqDto.templateId);
       if (!templateFields.length) return newCase;
 
-      // Map fieldName -> { fieldId, groupId, fieldLabel }
+      // Map fieldName -> template meta for defaulting case_fields values
       const fieldMap = new Map(
         templateFields.map((f) => [
           f.fieldName,
-          { fieldId: f.fieldId, groupId: f.groupId, fieldLabel: f.fieldLabel },
+          {
+            groupId: f.groupId,
+            fieldLabel: f.fieldLabel,
+            fieldType: f.fieldType,
+            isRequired: f.isRequired,
+            placeholder: f.placeholder,
+            options: f.options,
+            defaultValue: f.defaultValue,
+            isEdit: f.isEdit,
+            description: f.description,
+          },
         ]),
       );
-
-      console.log('Field Map:', fieldMap);
 
       //----------------------------------------------------------------
       // 6️⃣ Tạo dữ liệu cho caseFields
       //----------------------------------------------------------------
-      const caseFieldValues =
+      const caseFieldValues: (typeof caseFieldsTable.$inferInsert)[] =
         reqDto.fields
           ?.filter((f) => fieldMap.has(f.fieldName))
           .map((f) => {
-            const {
-              fieldId,
-              groupId: templateGroupId,
-              fieldLabel,
-            } = fieldMap.get(f.fieldName)!;
-
-            return {
+            const meta = fieldMap.get(f.fieldName)!;
+            const templateGroupId = meta.groupId;
+            const row: typeof caseFieldsTable.$inferInsert = {
               caseId: newCase.id,
               groupId: groupMap.get(templateGroupId)!, // lấy id từ map
-              fieldId,
-              fieldLabel: fieldLabel || '',
+              fieldLabel: f.fieldLabel ?? meta.fieldLabel ?? '',
               fieldName: f.fieldName,
+              fieldType: f.fieldType ?? meta.fieldType ?? 'text',
               fieldValue: f.value || '',
+              isRequired: f.isRequired ?? meta.isRequired ?? false,
+              placeholder: f.placeholder ?? meta.placeholder,
+              defaultValue: f.defaultValue ?? meta.defaultValue,
+              isEditable: f.isEdit ?? meta.isEdit ?? true,
+              description: f.description ?? meta.description,
             };
+            return row;
           }) ?? [];
-
-      console.log('Case Field Values to Insert:', caseFieldValues);
 
       if (caseFieldValues.length) {
         await tx.insert(caseFieldsTable).values(caseFieldValues);
@@ -244,13 +268,16 @@ export class CasesService {
     });
   }
 
-  async updatePhaseById(phaseId: string, reqDto: CreatePhasesReqDto) {
+  async updatePhaseById(phaseId: string, reqDto: UpdatePhasesReqDto) {
     return this.db.transaction(async (tx) => {
       //----------------------------------------------------------------
       // 1. Kiểm tra phase có tồn tại không
       //-----------------------------------------------------------------
       const [phaseFound] = await tx
-        .select({ id: casePhasesTable.id })
+        .select({
+          id: casePhasesTable.id,
+          isCompleted: casePhasesTable.isCompleted,
+        })
         .from(casePhasesTable)
         .where(eq(casePhasesTable.id, phaseId));
       if (!phaseFound) {
@@ -259,12 +286,23 @@ export class CasesService {
       //----------------------------------------------------------------
       // 2. Cập nhật phase
       //-----------------------------------------------------------------
+      const updateData = {
+        ...reqDto,
+        tasks: reqDto.tasks?.map((t) => t.name) || [],
+      };
+
+      // Tự động set completedAt khi phase được đánh dấu hoàn thành
+      if (reqDto.isCompleted === true && !phaseFound.isCompleted) {
+        updateData.completedAt = new Date();
+      }
+      // Xóa completedAt nếu phase được đánh dấu chưa hoàn thành
+      if (reqDto.isCompleted === false) {
+        updateData.completedAt = null;
+      }
+
       const [updatedPhase] = await tx
         .update(casePhasesTable)
-        .set({
-          ...reqDto,
-          tasks: reqDto.tasks?.map((t) => t.name) || [],
-        })
+        .set(updateData)
         .where(eq(casePhasesTable.id, phaseId))
         .returning();
       return updatedPhase;
@@ -277,7 +315,10 @@ export class CasesService {
       // 1. Kiểm tra phase có tồn tại không
       //-----------------------------------------------------------------
       const [phaseFound] = await tx
-        .select({ id: casePhasesTable.id })
+        .select({
+          id: casePhasesTable.id,
+          isCompleted: casePhasesTable.isCompleted,
+        })
         .from(casePhasesTable)
         .where(eq(casePhasesTable.id, phaseId));
       if (!phaseFound) {
@@ -286,14 +327,25 @@ export class CasesService {
       //----------------------------------------------------------------
       // 2. Cập nhật phases
       //-----------------------------------------------------------------
+      const updateData: Partial<typeof casePhasesTable.$inferInsert> = {
+        ...reqDto,
+        ...(reqDto.tasks && {
+          tasks: reqDto.tasks?.map((t) => t.name) || [],
+        }),
+      };
+
+      // Tự động set completedAt khi phase được đánh dấu hoàn thành
+      if (reqDto.isCompleted === true && !phaseFound.isCompleted) {
+        updateData.completedAt = new Date();
+      }
+      // Xóa completedAt nếu phase được đánh dấu chưa hoàn thành
+      if (reqDto.isCompleted === false) {
+        updateData.completedAt = null;
+      }
+
       const [updatedPhases] = await tx
         .update(casePhasesTable)
-        .set({
-          ...reqDto,
-          ...(reqDto.tasks && {
-            tasks: reqDto.tasks?.map((t) => t.name) || [],
-          }),
-        })
+        .set(updateData)
         .where(eq(casePhasesTable.id, phaseId))
         .returning();
       return updatedPhases;
@@ -314,15 +366,70 @@ export class CasesService {
       }
 
       //----------------------------------------------------------------
-      // 2️⃣ Cập nhật case
+      // 2️⃣ Cập nhật case (chỉ các field cơ bản, bỏ qua groups)
       //----------------------------------------------------------------
+      const baseUpdate: Partial<typeof casesTable.$inferInsert> = {};
+      if (reqDto.status !== undefined) baseUpdate.status = reqDto.status;
+
       const [updatedCase] = await tx
         .update(casesTable)
-        .set({
-          ...reqDto,
-        })
+        .set(baseUpdate)
         .where(eq(casesTable.id, caseId))
         .returning();
+
+      //----------------------------------------------------------------
+      // 3️⃣ Cập nhật groups và fields nếu có
+      //----------------------------------------------------------------
+      if (reqDto.groups?.length) {
+        for (const g of reqDto.groups) {
+          if (!g.id) continue; // chỉ hỗ trợ update nhóm đã tồn tại
+
+          const groupUpdate: Partial<typeof caseGroupsTable.$inferInsert> = {};
+          if (g.title !== undefined) groupUpdate.title = g.title;
+          if (g.description !== undefined)
+            groupUpdate.description = g.description;
+          if (g.index !== undefined) groupUpdate.index = g.index;
+
+          if (Object.keys(groupUpdate).length) {
+            await tx
+              .update(caseGroupsTable)
+              .set(groupUpdate)
+              .where(eq(caseGroupsTable.id, g.id));
+          }
+
+          if (g.fields?.length) {
+            for (const f of g.fields) {
+              if (!f.id) continue; // chỉ hỗ trợ update field đã tồn tại
+              const fieldUpdate: Partial<typeof caseFieldsTable.$inferInsert> =
+                {};
+              if (f.fieldLabel !== undefined)
+                fieldUpdate.fieldLabel = f.fieldLabel;
+              if (f.fieldValue !== undefined)
+                fieldUpdate.fieldValue = f.fieldValue;
+              if (f.placeholder !== undefined)
+                fieldUpdate.placeholder = f.placeholder;
+              if (f.defaultValue !== undefined)
+                fieldUpdate.defaultValue = f.defaultValue;
+              if (f.description !== undefined)
+                fieldUpdate.description = f.description;
+              if (f.isRequired !== undefined)
+                fieldUpdate.isRequired = f.isRequired;
+              if (f.isEditable !== undefined)
+                fieldUpdate.isEditable = f.isEditable;
+              if (f.index !== undefined) fieldUpdate.index = f.index;
+              if (f.options !== undefined) fieldUpdate.options = f.options;
+
+              if (Object.keys(fieldUpdate).length) {
+                await tx
+                  .update(caseFieldsTable)
+                  .set(fieldUpdate)
+                  .where(eq(caseFieldsTable.id, f.id));
+              }
+            }
+          }
+        }
+      }
+
       return updatedCase;
     });
   }

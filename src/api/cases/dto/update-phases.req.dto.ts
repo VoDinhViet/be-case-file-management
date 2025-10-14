@@ -33,6 +33,9 @@ export class UpdatePhasesReqDto {
   @BooleanFieldOptional()
   isCompleted?: boolean;
 
+  @DateFieldOptional()
+  completedAt?: Date | null;
+
   // Danh sách tasks trong giai đoạn
   @ClassFieldOptional(() => TaskItemResDto, { isArray: true })
   tasks: TaskItemResDto[];

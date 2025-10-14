@@ -5,8 +5,8 @@ import {
   type ApiResponseOptions,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { OffsetPaginatedDto } from '../common/dto/offset-pagination/paginated.dto';
 import { CursorPaginatedDto } from '../common/dto/cursor-pagination/paginated.dto';
+import { OffsetPaginatedDto } from '../common/dto/offset-pagination/paginated.dto';
 
 export const ApiPaginatedResponse = <T extends Type<any>>(options: {
   type?: T;

@@ -2,6 +2,7 @@ import {
   BooleanField,
   ClassField,
   DateField,
+  DateFieldOptional,
   StringField,
   StringFieldOptional,
 } from '../../../decorators/field.decorators';
@@ -29,6 +30,9 @@ export class CreatePhasesReqDto {
 
   @StringFieldOptional()
   note?: string;
+
+  @DateFieldOptional()
+  completedAt?: Date;
 
   @BooleanField()
   isCompleted?: boolean;

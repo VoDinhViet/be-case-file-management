@@ -2,6 +2,7 @@ import { createKeyv } from '@keyv/redis';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CacheableMemory } from 'cacheable';
 import Keyv from 'keyv';
 import { AuthModule } from './api/auth/auth.module';
@@ -27,6 +28,7 @@ import { DatabaseModule } from './database/database.module';
       load: [databaseConfig, appConfig, authConfig, redisConfig],
       envFilePath: ['.env', `.env.${process.env.NODE_ENV}`],
     }),
+    ScheduleModule.forRoot(),
     CacheModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService<AllConfigType>) => {

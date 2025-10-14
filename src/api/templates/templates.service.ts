@@ -266,12 +266,14 @@ export class TemplatesService {
   }
 
   async deleteTemplate(templateId: string) {
+    // Kiểm tra template có tồn tại không
     const template = await this.db.query.templatesTable.findFirst({
       where: eq(templatesTable.id, templateId),
       columns: { id: true },
     });
     if (!template) throw new ValidationException(ErrorCode.T001);
 
+    // Xóa template - cascade delete sẽ tự động xóa các cases liên quan
     return this.db
       .delete(templatesTable)
       .where(eq(templatesTable.id, templateId));

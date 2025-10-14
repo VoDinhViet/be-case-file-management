@@ -24,8 +24,9 @@ export const casePhasesTable = pgTable(
     description: text('description'), // mô tả giai đoạn
     order: integer('order').notNull(), // thứ tự giai đoạn
     startDate: timestamp('start_date').notNull(), // ngày bắt đầu
-    endDate: timestamp('end_date'), // ngày kết thúc
+    endDate: timestamp('end_date'), // ngày kết thúc dự kiến
     isCompleted: boolean('is_completed').default(false).notNull(), // trạng thái hoàn thành
+    completedAt: timestamp('completed_at'), // ngày hoàn thành thực tế
     createdAt: timestamp('created_at').defaultNow(),
     tasks: jsonb('tasks').default('[]').notNull(), // danh sách công việc trong giai đoạn
     note: text('note'), // ghi chú

@@ -4,10 +4,13 @@ import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CasesService } from './cases.service';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
-import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
 import { UpdateCaseReqDto } from './dto/update-case.req.dto';
+import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
 
-@Controller('cases')
+@Controller({
+  path: 'cases',
+  version: '1',
+})
 export class CasesController {
   constructor(private readonly casesService: CasesService) {}
 

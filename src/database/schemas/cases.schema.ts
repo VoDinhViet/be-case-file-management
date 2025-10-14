@@ -25,9 +25,9 @@ export enum CaseStatusEnum {
 
 export const casesTable = pgTable('cases', {
   id: uuid().defaultRandom().primaryKey(),
-  templateId: uuid('template_id')
-    .notNull()
-    .references(() => templatesTable.id),
+  templateId: uuid('template_id').references(() => templatesTable.id, {
+    onDelete: 'set null',
+  }),
   applicableLaw: varchar('applicable_law', { length: 255 }),
   numberOfDefendants: varchar('number_of_defendants', { length: 50 }),
   crimeType: varchar('crime_type', { length: 100 }),

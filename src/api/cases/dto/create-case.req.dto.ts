@@ -1,5 +1,6 @@
 import { CaseStatusEnum } from '../../../database/schemas';
 import {
+  BooleanFieldOptional,
   ClassFieldOptional,
   DateField,
   DateFieldOptional,
@@ -14,8 +15,49 @@ export class DynamicFieldDto {
   @UUIDField()
   groupId: string; // ✅ ID của group chứa field này
 
-  @StringField()
+  @StringField({
+    description: 'Nhãn hiển thị cho trường',
+    maxLength: 100,
+  })
+  fieldLabel: string;
+
+  @StringField({
+    description: 'Tên kỹ thuật (system name)',
+    maxLength: 100,
+  })
   fieldName: string;
+
+  @StringField({
+    description: 'Loại trường (string, number, boolean, date, etc.)',
+    maxLength: 50,
+  })
+  fieldType: string;
+
+  @BooleanFieldOptional({
+    description: 'Trường  biét là không được edit khi tạo case',
+  })
+  isEdit?: boolean;
+
+  @BooleanFieldOptional()
+  isRequired?: boolean;
+
+  @StringFieldOptional({
+    description: 'Placeholder cho trường',
+    maxLength: 255,
+  })
+  placeholder?: string;
+
+  @StringFieldOptional({
+    description: 'Giá trị mặc định cho trường',
+    maxLength: 255,
+  })
+  defaultValue?: string;
+
+  @StringFieldOptional({
+    description: 'Mô tả trường',
+    maxLength: 100,
+  })
+  description?: string;
 
   @StringFieldOptional()
   value?: string;

@@ -4,7 +4,6 @@ import {
 } from '../../../decorators/field.decorators';
 
 export class RegisterReqDto {
-
   @StringField()
   fullName!: string;
 
