@@ -1,0 +1,1 @@
+ALTER TABLE "case_plans" ADD COLUMN "participating_forces" jsonb DEFAULT '[]'::jsonb NOT NULL;

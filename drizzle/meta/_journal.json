@@ -176,6 +176,41 @@
       "when": 1760426892284,
       "tag": "0024_boring_felicia_hardy",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1760510258628,
+      "tag": "0025_futuristic_gunslinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1760513860128,
+      "tag": "0026_demonic_cargill",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1760514340087,
+      "tag": "0027_clammy_power_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1760516065715,
+      "tag": "0028_chunky_lenny_balinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1760517133519,
+      "tag": "0029_blushing_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

@@ -52,3 +52,5 @@ export const casePhasesTableRelations = relations(
     }),
   }),
 );
+
+export type CasePhasesType = typeof casePhasesTable.$inferSelect;

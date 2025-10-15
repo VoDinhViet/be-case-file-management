@@ -37,4 +37,4 @@ export const usersRelations = relations(usersTable, ({ one }) => ({
   }),
 }));
 
-export type User = typeof usersTable.$inferSelect;
+export type UserType = typeof usersTable.$inferSelect;

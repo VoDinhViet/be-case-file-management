@@ -11,8 +11,9 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { casePhasesTable } from './case-phases.schema';
+import { casePlansTable } from './case-plans.schema';
 import { templatesTable } from './templates.schema';
-import { usersTable } from './users.schema';
+import { UserType, usersTable } from './users.schema';
 
 // Trạng thái vụ án
 export enum CaseStatusEnum {
@@ -37,8 +38,6 @@ export const casesTable = pgTable('cases', {
     .notNull()
     .default(CaseStatusEnum.PENDING),
   description: text('description'),
-  startDate: timestamp('start_date').notNull(),
-  endDate: timestamp('end_date'),
   userId: uuid('user_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
@@ -57,6 +56,10 @@ export const casesTableRelations = relations(casesTable, ({ one, many }) => ({
   }),
   groups: many(caseGroupsTable),
   phases: many(casePhasesTable),
+  plan: one(casePlansTable, {
+    fields: [casesTable.id],
+    references: [casePlansTable.caseId],
+  }),
 }));
 
 export const caseGroupsTable = pgTable(
@@ -136,3 +139,10 @@ export const caseFieldsTableRelations = relations(
     }),
   }),
 );
+
+export type CaseType = typeof casesTable.$inferSelect & {
+  assignee: UserType;
+  groups: CaseGroupsType[];
+};
+export type CaseFieldsType = typeof caseFieldsTable.$inferSelect;
+export type CaseGroupsType = typeof caseGroupsTable.$inferSelect;

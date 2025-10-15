@@ -2,8 +2,6 @@ import { CaseStatusEnum } from '../../../database/schemas';
 import {
   BooleanFieldOptional,
   ClassFieldOptional,
-  DateField,
-  DateFieldOptional,
   EnumFieldOptional,
   StringField,
   StringFieldOptional,
@@ -85,12 +83,6 @@ export class CreateCaseDto {
 
   @StringFieldOptional()
   description?: string; // Mô tả vụ án
-
-  @DateField()
-  startDate: Date; // Ngày bắt đầu vụ án
-
-  @DateFieldOptional()
-  endDate?: Date; // Ngày kết thúc vụ án
 
   @UUIDField()
   userId: string; // Người tạo vụ án

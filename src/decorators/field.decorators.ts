@@ -23,7 +23,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Constructor } from '../common/types/types';
-import { ToBoolean, ToLowerCase, ToUpperCase } from './transform.decorators';
+import {
+  EmptyStringToUndefined,
+  ToBoolean,
+  ToLowerCase,
+  ToUpperCase,
+} from './transform.decorators';
 import { IsNullable } from './validators/is-nullable.decorator';
 import { IsPassword } from './validators/is-password.decorator';
 
@@ -110,7 +115,11 @@ export function NumberFieldOptional(
 export function StringField(
   options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
 ): PropertyDecorator {
-  const decorators = [Type(() => String), IsString({ each: options.each })];
+  const decorators = [
+    Type(() => String),
+    EmptyStringToUndefined(),
+    IsString({ each: options.each }),
+  ];
 
   if (options.nullable) {
     decorators.push(IsNullable({ each: options.each }));
@@ -130,9 +139,17 @@ export function StringField(
     );
   }
 
-  const minLength = options.minLength || 1;
-
-  decorators.push(MinLength(minLength, { each: options.each }));
+  // Chỉ apply minLength nếu không phải array hoặc user chỉ định rõ
+  if (options.each) {
+    // Với array: chỉ apply nếu user set minLength
+    if (options.minLength !== undefined) {
+      decorators.push(MinLength(options.minLength, { each: true }));
+    }
+  } else {
+    // Với string đơn: apply minLength mặc định = 1
+    const minLength = options.minLength || 1;
+    decorators.push(MinLength(minLength));
+  }
 
   if (options.maxLength) {
     decorators.push(MaxLength(options.maxLength, { each: options.each }));

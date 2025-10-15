@@ -9,14 +9,14 @@ import {
   caseFieldsTable,
   caseGroupsTable,
   casePhasesTable,
+  casePlansTable,
   casesTable,
   templateFieldsTable,
   templateGroupsTable,
+  templatesTable,
+  usersTable,
 } from '../../database/schemas';
-import type {
-  DrizzleDB,
-  FindManyQueryConfig,
-} from '../../database/types/drizzle';
+import type { DrizzleDB } from '../../database/types/drizzle';
 import { ValidationException } from '../../exceptions/validation.exception';
 import { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { RoleEnum } from '../auth/types/role.enum';
@@ -25,6 +25,7 @@ import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
 import { UpdateCaseReqDto } from './dto/update-case.req.dto';
 import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
+import { UpsertPlanReqDto } from './dto/upsert-plan.req.dto';
 
 @Injectable()
 export class CasesService {
@@ -66,16 +67,6 @@ export class CasesService {
       //----------------------------------------------------------------
       // 1️⃣ Thêm mới case
       //----------------------------------------------------------------
-      // 1.1 Validate ngày tháng
-      if (reqDto.endDate && reqDto.startDate) {
-        if (new Date(reqDto.endDate) < new Date(reqDto.startDate)) {
-          throw new ValidationException(
-            ErrorCode.V000,
-            'endDate must be greater than or equal to startDate',
-          );
-        }
-      }
-
       const caseInsert: typeof casesTable.$inferInsert = {
         templateId: reqDto.templateId,
         applicableLaw: reqDto.applicableLaw,
@@ -84,8 +75,6 @@ export class CasesService {
         name: reqDto.name,
         status: reqDto.status,
         description: reqDto.description,
-        startDate: reqDto.startDate,
-        endDate: reqDto.endDate,
         userId: reqDto.userId,
       };
 
@@ -186,46 +175,83 @@ export class CasesService {
   }
 
   async getPageCases(reqDto: PageUserReqDto, payload: JwtPayloadType) {
-    const baseConfig: FindManyQueryConfig<typeof this.db.query.casesTable> = {
-      where: and(
-        ...(reqDto.q
-          ? [
-              or(
-                sql`unaccent(${casesTable.name}) ILIKE unaccent(${`%${reqDto.q}%`})`,
-                sql`unaccent(${casesTable.description}) ILIKE unaccent(${`%${reqDto.q}%`})`,
-                sql`unaccent(${casesTable.crimeType}) ILIKE unaccent(${`%${reqDto.q}%`})`,
-                sql`unaccent(${casesTable.applicableLaw}) ILIKE unaccent(${`%${reqDto.q}%`})`,
-                sql`CAST(${casesTable.numberOfDefendants} AS TEXT) ILIKE ${`%${reqDto.q}%`}`,
-              ),
-            ]
-          : []),
-        ...(payload.role !== RoleEnum.ADMIN
-          ? [eq(casesTable.userId, payload.id)]
-          : []),
-      ),
-      with: {
-        template: true,
-        assignee: true,
-      },
-    };
+    // Subquery để tính startDate và endDate từ phases
+    const phaseDatesSubquery = this.db
+      .select({
+        caseId: casePhasesTable.caseId,
+        minStartDate: sql<Date>`MIN(${casePhasesTable.startDate})`
+          .mapWith((val) => (val ? new Date(val) : null))
+          .as('min_start_date'),
+        maxEndDate:
+          sql<Date>`MAX(COALESCE(${casePhasesTable.completedAt}, ${casePhasesTable.endDate}))`
+            .mapWith((val) => (val ? new Date(val) : null))
+            .as('max_end_date'),
+      })
+      .from(casePhasesTable)
+      .groupBy(casePhasesTable.caseId)
+      .as('phase_dates');
 
-    const qCount = this.db.query.casesTable.findMany({
-      ...baseConfig,
-      columns: { id: true },
-    });
+    // Build WHERE conditions
+    const whereConditions = and(
+      ...(reqDto.q
+        ? [
+            or(
+              sql`unaccent(${casesTable.name}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+              sql`unaccent(${casesTable.description}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+              sql`unaccent(${casesTable.crimeType}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+              sql`unaccent(${casesTable.applicableLaw}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+              sql`CAST(${casesTable.numberOfDefendants} AS TEXT) ILIKE ${`%${reqDto.q}%`}`,
+            ),
+          ]
+        : []),
+      ...(payload.role !== RoleEnum.ADMIN
+        ? [eq(casesTable.userId, payload.id)]
+        : []),
+    );
 
+    // Query chính với LEFT JOIN subquery, template, và assignee
     const [entities, [{ totalCount }]] = await Promise.all([
-      this.db.query.casesTable.findMany({
-        ...baseConfig,
-        orderBy: [
-          ...(reqDto.order === Order.DESC
-            ? [desc(casesTable.createdAt)]
-            : [desc(casesTable.createdAt)]),
-        ],
-        limit: reqDto.limit,
-        offset: reqDto.offset,
-      }),
-      this.db.select({ totalCount: count() }).from(sql`${qCount}`),
+      this.db
+        .select({
+          // Case fields
+          id: casesTable.id,
+          name: casesTable.name,
+          status: casesTable.status,
+          description: casesTable.description,
+          crimeType: casesTable.crimeType,
+          applicableLaw: casesTable.applicableLaw,
+          numberOfDefendants: casesTable.numberOfDefendants,
+          userId: casesTable.userId,
+          templateId: casesTable.templateId,
+          createdAt: casesTable.createdAt,
+          updatedAt: casesTable.updatedAt,
+          // Computed dates từ phases
+          startDate: phaseDatesSubquery.minStartDate,
+          endDate: phaseDatesSubquery.maxEndDate,
+          // Template relation
+          template: templatesTable,
+          // Assignee relation
+          assignee: usersTable,
+        })
+        .from(casesTable)
+        .leftJoin(
+          phaseDatesSubquery,
+          eq(casesTable.id, phaseDatesSubquery.caseId),
+        )
+        .leftJoin(templatesTable, eq(casesTable.templateId, templatesTable.id))
+        .leftJoin(usersTable, eq(casesTable.userId, usersTable.id))
+        .where(whereConditions)
+        .orderBy(
+          reqDto.order === Order.DESC
+            ? desc(casesTable.createdAt)
+            : asc(casesTable.createdAt),
+        )
+        .limit(reqDto.limit)
+        .offset(reqDto.offset),
+      this.db
+        .select({ totalCount: count() })
+        .from(casesTable)
+        .where(whereConditions),
     ]);
 
     const meta = new OffsetPaginationDto(totalCount, reqDto);
@@ -233,21 +259,77 @@ export class CasesService {
   }
 
   async getCaseById(caseId: string) {
-    const caseItem = await this.db.query.casesTable.findFirst({
-      where: eq(casesTable.id, caseId),
-      with: {
-        assignee: true,
-        groups: {
-          with: {
-            fields: true,
-          },
-        },
-      },
-    });
-    if (!caseItem) {
+    // Subquery để tính startDate và endDate từ phases
+    const phaseDatesSubquery = this.db
+      .select({
+        caseId: casePhasesTable.caseId,
+        minStartDate: sql<Date>`MIN(${casePhasesTable.startDate})`
+          .mapWith((val) => (val ? new Date(val) : null))
+          .as('min_start_date'),
+        maxEndDate:
+          sql<Date>`MAX(COALESCE(${casePhasesTable.completedAt}, ${casePhasesTable.endDate}))`
+            .mapWith((val) => (val ? new Date(val) : null))
+            .as('max_end_date'),
+      })
+      .from(casePhasesTable)
+      .where(eq(casePhasesTable.caseId, caseId))
+      .groupBy(casePhasesTable.caseId)
+      .as('phase_dates');
+
+    // Query chính với LEFT JOIN
+    const [caseWithDates] = await this.db
+      .select({
+        // Case fields
+        id: casesTable.id,
+        name: casesTable.name,
+        status: casesTable.status,
+        description: casesTable.description,
+        crimeType: casesTable.crimeType,
+        applicableLaw: casesTable.applicableLaw,
+        numberOfDefendants: casesTable.numberOfDefendants,
+        userId: casesTable.userId,
+        templateId: casesTable.templateId,
+        createdAt: casesTable.createdAt,
+        updatedAt: casesTable.updatedAt,
+        // Computed dates từ phases
+        startDate: phaseDatesSubquery.minStartDate,
+        endDate: phaseDatesSubquery.maxEndDate,
+        // Relations
+        template: templatesTable,
+        assignee: usersTable,
+      })
+      .from(casesTable)
+      .leftJoin(
+        phaseDatesSubquery,
+        eq(casesTable.id, phaseDatesSubquery.caseId),
+      )
+      .leftJoin(templatesTable, eq(casesTable.templateId, templatesTable.id))
+      .leftJoin(usersTable, eq(casesTable.userId, usersTable.id))
+      .where(eq(casesTable.id, caseId));
+
+    if (!caseWithDates) {
       throw new ValidationException(ErrorCode.C001);
     }
-    return caseItem;
+
+    // Lấy groups và fields
+    const groups = await this.db.query.caseGroupsTable.findMany({
+      where: eq(caseGroupsTable.caseId, caseId),
+      with: {
+        fields: true,
+      },
+    });
+
+    // Lấy phases
+    const phases = await this.db.query.casePhasesTable.findMany({
+      where: eq(casePhasesTable.caseId, caseId),
+      orderBy: [asc(casePhasesTable.order)],
+    });
+
+    return {
+      ...caseWithDates,
+      groups,
+      phases,
+    };
   }
 
   async addPhaseToCase(caseId: string, reqDto: CreatePhasesReqDto) {
@@ -262,8 +344,19 @@ export class CasesService {
       if (!caseFound) {
         throw new ValidationException(ErrorCode.C001);
       }
+
       //----------------------------------------------------------------
-      // 2. Thêm mới phase
+      // 2. Validate ngày tháng
+      //-----------------------------------------------------------------
+      if (new Date(reqDto.startDate) > new Date(reqDto.endDate)) {
+        throw new ValidationException(
+          ErrorCode.V000,
+          'startDate must be less than or equal to endDate',
+        );
+      }
+
+      //----------------------------------------------------------------
+      // 3. Thêm mới phase
       //-----------------------------------------------------------------
       // Thêm danh sách phases mới vào case
       const [insertedPhases] = await tx
@@ -295,16 +388,32 @@ export class CasesService {
         .select({
           id: casePhasesTable.id,
           isCompleted: casePhasesTable.isCompleted,
+          startDate: casePhasesTable.startDate,
+          endDate: casePhasesTable.endDate,
         })
         .from(casePhasesTable)
         .where(eq(casePhasesTable.id, phaseId));
       if (!phaseFound) {
         throw new ValidationException(ErrorCode.P001);
       }
+
       //----------------------------------------------------------------
-      // 2. Cập nhật phase
+      // 2. Validate ngày tháng
       //-----------------------------------------------------------------
-      const updateData = {
+      const finalStartDate = reqDto.startDate || phaseFound.startDate;
+      const finalEndDate = reqDto.endDate || phaseFound.endDate;
+
+      if (new Date(finalStartDate) > new Date(finalEndDate)) {
+        throw new ValidationException(
+          ErrorCode.V000,
+          'startDate must be less than or equal to endDate',
+        );
+      }
+
+      //----------------------------------------------------------------
+      // 3. Cập nhật phase
+      //-----------------------------------------------------------------
+      const updateData: Partial<typeof casePhasesTable.$inferInsert> = {
         ...reqDto,
         tasks: reqDto.tasks?.map((t) => t.name) || [],
       };
@@ -336,14 +445,30 @@ export class CasesService {
         .select({
           id: casePhasesTable.id,
           isCompleted: casePhasesTable.isCompleted,
+          startDate: casePhasesTable.startDate,
+          endDate: casePhasesTable.endDate,
         })
         .from(casePhasesTable)
         .where(eq(casePhasesTable.id, phaseId));
       if (!phaseFound) {
         throw new ValidationException(ErrorCode.P001);
       }
+
       //----------------------------------------------------------------
-      // 2. Cập nhật phases
+      // 2. Validate ngày tháng
+      //-----------------------------------------------------------------
+      const finalStartDate = reqDto.startDate || phaseFound.startDate;
+      const finalEndDate = reqDto.endDate || phaseFound.endDate;
+
+      if (new Date(finalStartDate) > new Date(finalEndDate)) {
+        throw new ValidationException(
+          ErrorCode.V000,
+          'startDate must be less than or equal to endDate',
+        );
+      }
+
+      //----------------------------------------------------------------
+      // 3. Cập nhật phases
       //-----------------------------------------------------------------
       const updateData: Partial<typeof casePhasesTable.$inferInsert> = {
         ...reqDto,
@@ -370,6 +495,27 @@ export class CasesService {
     });
   }
 
+  async deletePhaseById(phaseId: string) {
+    return this.db.transaction(async (tx) => {
+      //----------------------------------------------------------------
+      // 1. Kiểm tra phase có tồn tại không
+      //-----------------------------------------------------------------
+      const [phaseFound] = await tx
+        .select({ id: casePhasesTable.id })
+        .from(casePhasesTable)
+        .where(eq(casePhasesTable.id, phaseId));
+      if (!phaseFound) {
+        throw new ValidationException(ErrorCode.P001);
+      }
+
+      //----------------------------------------------------------------
+      // 2. Xóa phase
+      //-----------------------------------------------------------------
+      await tx.delete(casePhasesTable).where(eq(casePhasesTable.id, phaseId));
+      return { success: true };
+    });
+  }
+
   async updateCaseById(caseId: string, reqDto: UpdateCaseReqDto) {
     return this.db.transaction(async (tx) => {
       //----------------------------------------------------------------
@@ -386,12 +532,12 @@ export class CasesService {
       //----------------------------------------------------------------
       // 2️⃣ Cập nhật case (chỉ các field cơ bản, bỏ qua groups)
       //----------------------------------------------------------------
-      const baseUpdate: Partial<typeof casesTable.$inferInsert> = {};
-      if (reqDto.status !== undefined) baseUpdate.status = reqDto.status;
 
       const [updatedCase] = await tx
         .update(casesTable)
-        .set(baseUpdate)
+        .set({
+          ...reqDto,
+        })
         .where(eq(casesTable.id, caseId))
         .returning();
 
@@ -472,6 +618,70 @@ export class CasesService {
 
       await tx.delete(casesTable).where(eq(casesTable.id, caseId));
       return { success: true };
+    });
+  }
+
+  // ==================== CASE PLANS METHODS ====================
+
+  async upsertPlanForCase(caseId: string, reqDto: UpsertPlanReqDto) {
+    return this.db.transaction(async (tx) => {
+      //----------------------------------------------------------------
+      // 1. Kiểm tra case có tồn tại không
+      //-----------------------------------------------------------------
+      const [caseFound] = await tx
+        .select({ id: casesTable.id })
+        .from(casesTable)
+        .where(eq(casesTable.id, caseId));
+      if (!caseFound) {
+        throw new ValidationException(ErrorCode.C001);
+      }
+
+      //----------------------------------------------------------------
+      // 2. Kiểm tra plan đã tồn tại chưa
+      //-----------------------------------------------------------------
+      const [existingPlan] = await tx
+        .select({ id: casePlansTable.id })
+        .from(casePlansTable)
+        .where(eq(casePlansTable.caseId, caseId));
+
+      //----------------------------------------------------------------
+      // 3. Tạo hoặc cập nhật plan
+      //-----------------------------------------------------------------
+      const planData: Partial<typeof casePlansTable.$inferInsert> = {
+        investigationResult: reqDto.investigationResult,
+        exhibits: reqDto.exhibits || [],
+        nextInvestigationPurpose: reqDto.nextInvestigationPurpose,
+        nextInvestigationContent: reqDto.nextInvestigationContent || [],
+        participatingForces: reqDto.participatingForces || [],
+      };
+
+      if (existingPlan) {
+        // Update
+        const [updatedPlan] = await tx
+          .update(casePlansTable)
+          .set({
+            ...planData,
+          })
+          .where(eq(casePlansTable.id, existingPlan.id))
+          .returning();
+        return updatedPlan;
+      } else {
+        // Create
+        const [insertedPlan] = await tx
+          .insert(casePlansTable)
+          .values({
+            caseId,
+            ...planData,
+          })
+          .returning();
+        return insertedPlan;
+      }
+    });
+  }
+
+  async getPlanByCaseId(caseId: string) {
+    return this.db.query.casePlansTable.findFirst({
+      where: eq(casePlansTable.caseId, caseId),
     });
   }
 }

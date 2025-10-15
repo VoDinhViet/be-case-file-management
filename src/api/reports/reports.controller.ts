@@ -1,7 +1,7 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../decorators/current-user.decorator';
-import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
+import { ApiAuth } from '../../decorators/http.decorators';
 import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { GetMyCaseStatisticsReqDto } from './dto/get-my-case-statistics.req.dto';
 import { ReportsService } from './reports.service';
@@ -10,10 +10,12 @@ import { ReportsService } from './reports.service';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @ApiPublic()
+  @ApiAuth({
+    summary: 'Xuất file docx từ template dựa trên case',
+  })
   @Get('export')
-  async export(@Query() query: any, @Res() res: Response) {
-    return this.reportsService.exportFromTemplate(res);
+  async export(@Query('caseId') caseId: string, @Res() res: Response) {
+    return this.reportsService.exportFromTemplate(caseId, res);
   }
 
   @ApiAuth({

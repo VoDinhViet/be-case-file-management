@@ -1,8 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { and, eq, gte, isNotNull, lte } from 'drizzle-orm';
+import { and, eq, gte, isNotNull, lte, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/database.module';
 import {
+  casePhasesTable,
   casesTable,
   CaseStatusEnum,
   NotificationTypeEnum,
@@ -21,6 +22,7 @@ export class CaseDeadlineScheduler {
 
   /**
    * Chạy mỗi ngày lúc 9:00 sáng để kiểm tra cases sắp hết hạn
+   * Deadline được tính dựa trên phase cuối cùng (theo order)
    */
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async checkUpcomingDeadlines() {
@@ -31,22 +33,30 @@ export class CaseDeadlineScheduler {
     threeDaysLater.setDate(now.getDate() + 3);
 
     try {
-      // Tìm các cases có endDate trong 3 ngày tới và chưa hoàn thành
+      // Lấy endDate lớn nhất từ phases của mỗi case
       const upcomingCases = await this.db
         .select({
-          id: casesTable.id,
-          name: casesTable.name,
-          endDate: casesTable.endDate,
+          caseId: casesTable.id,
+          caseName: casesTable.name,
           userId: casesTable.userId,
+          latestEndDate: sql<Date>`MAX(${casePhasesTable.endDate})`.mapWith(
+            (val) => (val ? new Date(val) : null),
+          ),
         })
         .from(casesTable)
+        .innerJoin(casePhasesTable, eq(casesTable.id, casePhasesTable.caseId))
         .where(
           and(
-            isNotNull(casesTable.endDate),
             isNotNull(casesTable.userId),
-            gte(casesTable.endDate, now),
-            lte(casesTable.endDate, threeDaysLater),
             eq(casesTable.status, CaseStatusEnum.IN_PROGRESS),
+            isNotNull(casePhasesTable.endDate),
+          ),
+        )
+        .groupBy(casesTable.id, casesTable.name, casesTable.userId)
+        .having(
+          and(
+            gte(sql`MAX(${casePhasesTable.endDate})`, now),
+            lte(sql`MAX(${casePhasesTable.endDate})`, threeDaysLater),
           ),
         );
 
@@ -54,22 +64,23 @@ export class CaseDeadlineScheduler {
 
       // Gửi thông báo cho từng case
       for (const caseItem of upcomingCases) {
-        if (!caseItem.userId || !caseItem.endDate) continue;
+        if (!caseItem.userId || !caseItem.latestEndDate) continue;
 
         const daysLeft = Math.ceil(
-          (caseItem.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          (caseItem.latestEndDate.getTime() - now.getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         await this.notificationsService.createNotification({
           userId: caseItem.userId,
-          caseId: caseItem.id,
+          caseId: caseItem.caseId,
           type: NotificationTypeEnum.CASE_DEADLINE_SOON,
           title: 'Vụ án sắp hết hạn',
-          body: `Vụ án "${caseItem.name}" sẽ hết hạn trong ${daysLeft} ngày (${caseItem.endDate.toLocaleDateString('vi-VN')})`,
+          body: `Vụ án "${caseItem.caseName}" sẽ hết hạn trong ${daysLeft} ngày (${caseItem.latestEndDate.toLocaleDateString('vi-VN')})`,
         });
 
         this.logger.log(
-          `Đã gửi thông báo cho user ${caseItem.userId} về case ${caseItem.id}`,
+          `Đã gửi thông báo cho user ${caseItem.userId} về case ${caseItem.caseId}`,
         );
       }
 
@@ -81,6 +92,7 @@ export class CaseDeadlineScheduler {
 
   /**
    * Chạy mỗi ngày lúc 10:00 sáng để kiểm tra cases quá hạn
+   * Deadline được tính dựa trên phase cuối cùng (theo order)
    */
   @Cron(CronExpression.EVERY_DAY_AT_10AM)
   async checkOverdueCases() {
@@ -92,41 +104,46 @@ export class CaseDeadlineScheduler {
       // Tìm các cases đã quá hạn nhưng vẫn đang xử lý
       const overdueCases = await this.db
         .select({
-          id: casesTable.id,
-          name: casesTable.name,
-          endDate: casesTable.endDate,
+          caseId: casesTable.id,
+          caseName: casesTable.name,
           userId: casesTable.userId,
+          latestEndDate: sql<Date>`MAX(${casePhasesTable.endDate})`.mapWith(
+            (val) => (val ? new Date(val) : null),
+          ),
         })
         .from(casesTable)
+        .innerJoin(casePhasesTable, eq(casesTable.id, casePhasesTable.caseId))
         .where(
           and(
-            isNotNull(casesTable.endDate),
             isNotNull(casesTable.userId),
-            lte(casesTable.endDate, now),
             eq(casesTable.status, CaseStatusEnum.IN_PROGRESS),
+            isNotNull(casePhasesTable.endDate),
           ),
-        );
+        )
+        .groupBy(casesTable.id, casesTable.name, casesTable.userId)
+        .having(lte(sql`MAX(${casePhasesTable.endDate})`, now));
 
       this.logger.log(`Tìm thấy ${overdueCases.length} cases quá hạn`);
 
       // Gửi thông báo cho từng case quá hạn
       for (const caseItem of overdueCases) {
-        if (!caseItem.userId || !caseItem.endDate) continue;
+        if (!caseItem.userId || !caseItem.latestEndDate) continue;
 
         const daysOverdue = Math.floor(
-          (now.getTime() - caseItem.endDate.getTime()) / (1000 * 60 * 60 * 24),
+          (now.getTime() - caseItem.latestEndDate.getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         await this.notificationsService.createNotification({
           userId: caseItem.userId,
-          caseId: caseItem.id,
+          caseId: caseItem.caseId,
           type: NotificationTypeEnum.CASE_OVERDUE,
           title: '⚠️ Vụ án quá hạn',
-          body: `Vụ án "${caseItem.name}" đã quá hạn ${daysOverdue} ngày. Vui lòng xử lý ngay!`,
+          body: `Vụ án "${caseItem.caseName}" đã quá hạn ${daysOverdue} ngày. Vui lòng xử lý ngay!`,
         });
 
         this.logger.log(
-          `Đã gửi cảnh báo quá hạn cho user ${caseItem.userId} về case ${caseItem.id}`,
+          `Đã gửi cảnh báo quá hạn cho user ${caseItem.userId} về case ${caseItem.caseId}`,
         );
       }
 

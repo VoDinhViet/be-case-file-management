@@ -19,6 +19,7 @@ import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
 import { UpdateCaseReqDto } from './dto/update-case.req.dto';
 import { UpdatePhasesReqDto } from './dto/update-phases.req.dto';
+import { UpsertPlanReqDto } from './dto/upsert-plan.req.dto';
 
 @Controller({
   path: 'cases',
@@ -110,8 +111,15 @@ export class CasesController {
     @Param('phaseId') phaseId: string,
     @Body() reqDto: CreatePhasesReqDto,
   ) {
-    console.log('Updating phase:', phaseId, reqDto);
     return this.casesService.updatePhaseById(phaseId, reqDto);
+  }
+
+  @ApiAuth({
+    summary: 'Delete phase by ID',
+  })
+  @Delete('phases/:phaseId')
+  async deletePhaseById(@Param('phaseId') phaseId: string) {
+    return this.casesService.deletePhaseById(phaseId);
   }
 
   @ApiAuth({
@@ -123,5 +131,27 @@ export class CasesController {
     @Param('caseId') caseId: string,
   ) {
     return this.casesService.deleteCaseById(caseId, payload);
+  }
+
+  // ==================== CASE PLANS ENDPOINTS ====================
+
+  @ApiAuth({
+    summary: 'Upsert plan for case (create or update)',
+  })
+  @Put(':caseId/plan')
+  async upsertPlanForCase(
+    @Param('caseId') caseId: string,
+    @Body() reqDto: UpsertPlanReqDto,
+  ) {
+    console.log('Upserting plan for case:', caseId, reqDto);
+    return this.casesService.upsertPlanForCase(caseId, reqDto);
+  }
+
+  @ApiAuth({
+    summary: 'Get plan by case ID',
+  })
+  @Get(':caseId/plan')
+  async getPlanByCaseId(@Param('caseId') caseId: string) {
+    return this.casesService.getPlanByCaseId(caseId);
   }
 }

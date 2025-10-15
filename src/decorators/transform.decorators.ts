@@ -86,3 +86,36 @@ export function ToUpperCase(): PropertyDecorator {
     },
   );
 }
+
+/**
+ * @description Convert empty string to undefined
+ *
+ * @example
+ * @ApiProperty()
+ * @IsString()
+ * @EmptyStringToUndefined()
+ * name: string;
+ *
+ * @returns PropertyDecorator
+ * @constructor
+ */
+export function EmptyStringToUndefined(): PropertyDecorator {
+  return Transform(
+    (params) => {
+      const value = params.value;
+
+      if (value === '') {
+        return undefined;
+      }
+
+      if (Array.isArray(value)) {
+        return value.map((v) => (v === '' ? undefined : v));
+      }
+
+      return value;
+    },
+    {
+      toClassOnly: true,
+    },
+  );
+}

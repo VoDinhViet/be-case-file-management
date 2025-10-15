@@ -7,18 +7,47 @@ import { DateTime } from 'luxon';
 import * as path from 'path';
 import PizZip from 'pizzip';
 import { DRIZZLE } from '../../database/database.module';
-import { casesTable } from '../../database/schemas';
+import {
+  CasePhasesType,
+  CasePlanType,
+  CaseType,
+  casesTable,
+} from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
 import { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { RoleEnum } from '../auth/types/role.enum';
+import { CasesService } from '../cases/cases.service';
 import { GetMyCaseStatisticsReqDto } from './dto/get-my-case-statistics.req.dto';
 
 @Injectable()
 export class ReportsService {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
-  async exportFromTemplate(res: Response) {
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly casesService: CasesService,
+  ) {}
+  async exportFromTemplate(caseId: string, res: Response) {
     try {
-      // 1️⃣ Đọc file template
+      //----------------------------------------------------------------
+      // 1. Lấy thông tin case từ database
+      //-----------------------------------------------------------------
+      const caseData = await this.casesService.getCaseById(caseId);
+
+      //----------------------------------------------------------------
+      // 2. Lấy thông tin phases và plan
+      //-----------------------------------------------------------------
+      const [casePhases, casePlan] = await Promise.all([
+        this.casesService.getPhasesByCaseId(caseId),
+        this.casesService.getPlanByCaseId(caseId),
+      ]);
+
+      // 3️⃣ Format dữ liệu cho template
+      const data = this.formatDataTemplate(
+        caseData as CaseType,
+        casePhases,
+        casePlan as CasePlanType,
+      );
+
+      // 4️⃣ Đọc file template
       const templatePath = path.join(
         process.cwd(),
         'src',
@@ -28,46 +57,37 @@ export class ReportsService {
         'template.docx',
       );
 
-      // 2️⃣ Đọc file
+      // 5️⃣ Đọc file
       const content = await fs.promises.readFile(templatePath);
 
-      // 3️⃣ Load template với cấu hình đúng
+      // 6️⃣ Load template với cấu hình đúng
       const zip = new PizZip(content);
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
       });
 
-      // 4️⃣ Dữ liệu thay thế - sử dụng cú pháp đơn giản
-      const data = {
-        name: 'Vụ án trộm cắp tài sản',
-        fullName: 'Nguyễn Văn A',
-        startDate: '01/11/2024',
-        description:
-          'Khoảng 16 giờ ngày 05/11/2024, Tổ tuần tra Công an huyện Thuận Nam phối hợp Công an xã Phước Diêm tuần tra đảm bảo an ninh, trật tự địa bàn xã Phước Diêm, khi tuần tra đến đoạn đường liên thôn thuộc thôn Lạc Tân 3, xã Phước Diêm, huyện Thuận Nam, tỉnh Ninh Thuận thì phát hiện một nam thanh niên điều khiển xe mô tô hiệu Sirius, biển số 85C-131.62 có biểu hiện nghi vấn nên tiến hành dừng xe để kiểm tra. Quá trình kiểm tra phát hiện ở giỏ phía trước xe mô tô của nam thanh niên có 01 vỏ bao thuốc lá hiệu “Jet” bên trong có 01 túi nilon màu trắng, chứa tinh thể màu trắng. Qua làm việc nam thanh niên khai nhận tên Lê Văn Tuấn, sinh năm 1995, trú thôn Lạc Tân 3, xã Phước Diêm, huyện Thuận Nam, tỉnh Ninh Thuận. Túi nilon chứa tinh thể màu trắng là ma túy đá. Ngày 03/11/2024, Tuấn mua túi ma túy nói trên của một người thanh niên không rõ nhân thân, lai lịch ở Cảng Mũi Né, Phan Thiết, Bình Thuận về để sử dụng. Tuấn đã sử dụng một ít, còn một ít mang theo thì bị lực lượng Công an kiểm tra, phát hiện, bắt giữ.',
-        tasks: [
-          'Khám xét khẩn cấp chỗ ở của Lê Văn Tuấn.',
-          'Trưng cầu giám định ma túy.',
-          'Xác minh phương tiện tại Phòng Cảnh sát giao thông.',
-          'Khởi tố vụ án, khởi tố bị can, hỏi cung bị can, lập danh chỉ bản.',
-          'Tra cứu nhân thân, lai lịch Lê Văn Tuấn.',
-        ],
-      };
-
-      // 5️⃣ Render
+      // 7️⃣ Render
       doc.render(data);
 
-      // 6️⃣ Tạo buffer và gửi response
+      // 8️⃣ Tạo buffer và gửi response
       const buffer = doc.getZip().generate({
         type: 'nodebuffer',
         compression: 'DEFLATE',
       });
 
+      // Tên file xuất bao gồm tên case
+      const caseName = (caseData.name || 'case').replace(/[^a-z0-9]/gi, '_');
+      const fileName = `${caseName}_${DateTime.now().toFormat('yyyyMMdd_HHmmss')}.docx`;
+
       res.setHeader(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       );
-      res.setHeader('Content-Disposition', 'attachment; filename=report.docx');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${encodeURIComponent(fileName)}"`,
+      );
       res.send(buffer);
     } catch (error) {
       console.error('Lỗi khi xuất template:', error);
@@ -79,6 +99,78 @@ export class ReportsService {
         });
       }
     }
+  }
+
+  /**
+   * Format dữ liệu case để phù hợp với template docx
+   */
+  private formatDataTemplate(
+    caseData: CaseType,
+    casePhases: CasePhasesType[],
+    casePlan: CasePlanType | null | undefined,
+  ) {
+    // Format ngày tháng
+    const formatDate = (date: Date | null | undefined) => {
+      if (!date) return '';
+      return DateTime.fromJSDate(new Date(date))
+        .setZone('Asia/Ho_Chi_Minh')
+        .toFormat('dd/MM/yyyy');
+    };
+
+    // Lấy tất cả tasks từ các phases
+    const allTasks: string[] = [];
+    casePhases.forEach((phase) => {
+      if (phase.tasks && Array.isArray(phase.tasks)) {
+        allTasks.push(...phase.tasks);
+      }
+    });
+
+    // Tính startDate và endDate dựa trên phases
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+
+    if (casePhases.length > 0) {
+      // Sắp xếp phases theo startDate
+      const sortedPhases = [...casePhases].sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      );
+
+      // startDate của case = startDate của phase đầu tiên
+      startDate = sortedPhases[0].startDate;
+
+      // endDate của case = endDate hoặc completedAt của phase cuối cùng
+      const lastPhase = sortedPhases[sortedPhases.length - 1];
+      endDate = lastPhase.completedAt || lastPhase.endDate;
+    }
+    console.log(casePlan?.nextInvestigationContent);
+
+    // Dữ liệu cuối cùng để thay thế trong template
+    return {
+      // Thông tin cơ bản
+      name: caseData.name || '',
+      description: caseData.description || '',
+      status: caseData.status || '',
+      crimeType: caseData.crimeType || '',
+      applicableLaw: caseData.applicableLaw || '',
+      numberOfDefendants: caseData.numberOfDefendants || 0,
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate),
+
+      // Thông tin người phụ trách
+      fullName: caseData.assignee?.fullName || '',
+      phone: caseData.assignee?.phone || '',
+
+      // Danh sách tasks từ các phases
+      tasks: allTasks,
+
+      // Thông tin kế hoạch điều tra (từ case_plans)
+      investigationResult: casePlan?.investigationResult || '',
+      exhibits: casePlan?.exhibits || [],
+      nextInvestigationPurpose: casePlan?.nextInvestigationPurpose || '',
+      nextInvestigationContent: casePlan?.nextInvestigationContent || [],
+      participatingForces: casePlan?.participatingForces || [],
+    };
   }
 
   async caseStatistics(
@@ -126,10 +218,10 @@ export class ReportsService {
         and(
           ...(userId ? [eq(casesTable.userId, userId)] : []),
           ...(reqDto.startDate
-            ? [gte(casesTable.endDate, reqDto.startDate)]
+            ? [gte(casesTable.createdAt, reqDto.startDate)]
             : []),
           ...(reqDto.endDate
-            ? [lte(casesTable.startDate, reqDto.endDate)]
+            ? [lte(casesTable.createdAt, reqDto.endDate)]
             : []),
           ...(payload.role !== RoleEnum.ADMIN
             ? [eq(casesTable.userId, payload.id)]

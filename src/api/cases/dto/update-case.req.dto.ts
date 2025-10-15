@@ -4,6 +4,7 @@ import { CaseStatusEnum } from '../../../database/schemas';
 import {
   BooleanFieldOptional,
   ClassFieldOptional,
+  DateFieldOptional,
   EnumFieldOptional,
   NumberFieldOptional,
   StringFieldOptional,
@@ -13,6 +14,27 @@ import {
 export class UpdateCaseReqDto {
   @EnumFieldOptional(() => CaseStatusEnum, { default: CaseStatusEnum.PENDING })
   status?: CaseStatusEnum; // Trạng thái vụ án
+
+  @StringFieldOptional()
+  name?: string;
+
+  @StringFieldOptional()
+  description?: string;
+
+  @DateFieldOptional()
+  startDate?: Date;
+
+  @DateFieldOptional()
+  endDate?: Date;
+
+  @StringFieldOptional()
+  applicableLaw?: string;
+
+  @StringFieldOptional()
+  numberOfDefendants?: string;
+
+  @StringFieldOptional()
+  crimeType?: string;
 
   // --- Nested update for case groups and fields ---
   @ClassFieldOptional(() => UpdateCaseGroupDto, { isArray: true })
