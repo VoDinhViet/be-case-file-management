@@ -13,6 +13,7 @@ import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { CreateNotificationReqDto } from './dto/create-notification.req.dto';
 import { CreateTokenReqDto } from './dto/create-token.req.dto';
 import { PageNotificationReqDto } from './dto/page-notification.req.dto';
+import { SendFcmNotificationReqDto } from './dto/send-fcm-notification.req.dto';
 import { NotificationsService } from './notifications.service';
 
 @Controller('notifications')
@@ -59,5 +60,20 @@ export class NotificationsController {
   @Patch('/mark-all-read')
   async markAllAsRead(@CurrentUser() payload: JwtPayloadType) {
     return this.notificationsService.markAllAsRead(payload.id);
+  }
+
+  @ApiAuth({ summary: 'Test gửi FCM push notification' })
+  @Post('/accc/send-fcm')
+  async sendFcmNotification(
+    @CurrentUser() payload: JwtPayloadType,
+    @Body() reqDto: SendFcmNotificationReqDto,
+  ) {
+    console.log('Sending FCM push to user:', payload.id, reqDto);
+    return this.notificationsService.sendFcmPushToUser(
+      '7a7c50eb-bb00-4bf3-bbad-88515b8302c6',
+      reqDto.title,
+      reqDto.body,
+      reqDto.imageUrl,
+    );
   }
 }

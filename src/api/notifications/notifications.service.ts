@@ -10,6 +10,7 @@ import {
   usersTable,
 } from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
+import { FirebaseService } from '../../firebase/firebase.service';
 import { CreateNotificationReqDto } from './dto/create-notification.req.dto';
 import { CreateTokenReqDto } from './dto/create-token.req.dto';
 import { PageNotificationReqDto } from './dto/page-notification.req.dto';
@@ -19,7 +20,10 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private expo = new Expo();
 
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly firebaseService: FirebaseService,
+  ) {}
 
   async addTokenToDatabase(reqDto: CreateTokenReqDto) {
     const { tokenExpo, userId } = reqDto;
@@ -201,5 +205,71 @@ export class NotificationsService {
       );
 
     return { unreadCount };
+  }
+
+  /**
+   * Gửi FCM push notification cho một user cụ thể
+   */
+  async sendFcmPushToUser(
+    userId: string,
+    title: string,
+    body: string,
+    imageUrl?: string,
+  ) {
+    const user = await this.db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId),
+      columns: { fcmToken: true, fullName: true },
+    });
+
+    if (!user?.fcmToken) {
+      this.logger.warn(`User ${userId} không có FCM token`);
+      throw new Error(`User không có FCM token`);
+    }
+
+    try {
+      const messaging = this.firebaseService.getMessaging();
+
+      const message: any = {
+        token: user.fcmToken,
+        notification: {
+          title,
+          body,
+        },
+        data: {
+          userId,
+          timestamp: new Date().toISOString(),
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            sound: 'default',
+            channelId: 'default',
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              badge: 1,
+            },
+          },
+        },
+      };
+
+      const response = await messaging.send(message);
+      this.logger.log(
+        `Đã gửi FCM push notification cho user ${userId} (${user.fullName}): ${response}`,
+      );
+
+      return {
+        success: true,
+        messageId: response,
+        userId,
+        userName: user.fullName,
+      };
+    } catch (error) {
+      this.logger.error(`Lỗi khi gửi FCM push notification:`, error);
+      throw error;
+    }
   }
 }

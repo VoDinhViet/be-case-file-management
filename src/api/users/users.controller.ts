@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -16,6 +17,7 @@ import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { RoleEnum } from '../auth/types/role.enum';
 import { CreateUserReqDto } from './dto/create-user.req.dto';
 import { PageUserReqDto } from './dto/page-user.req.dto';
+import { UpdateFcmTokenReqDto } from './dto/update-fcm-token.req.dto';
 import { UpdateUserReqDto } from './dto/update-user.req.dto';
 import { UsersService } from './users.service';
 
@@ -68,6 +70,18 @@ export class UsersController {
   @Get('profile')
   async getProfile(@CurrentUser() payload: JwtPayloadType) {
     return this.usersService.findById(payload.id);
+  }
+
+  @ApiAuth({
+    summary: 'Cập nhật FCM token',
+  })
+  @Patch('fcm-token')
+  async updateFcmToken(
+    @CurrentUser() payload: JwtPayloadType,
+    @Body() reqDto: UpdateFcmTokenReqDto,
+  ) {
+    console.log('Updating FCM token for user:', payload.id, reqDto);
+    return await this.usersService.updateFcmToken(payload.id, reqDto.fcmToken);
   }
 
   @Delete(':userId')

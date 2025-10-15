@@ -21,11 +21,19 @@ import appConfig from './config/app.config';
 import { AllConfigType } from './config/config.type';
 import databaseConfig from './database/config/database.config';
 import { DatabaseModule } from './database/database.module';
+import firebaseConfig from './firebase/config/firebase.config';
+import { FirebaseModule } from './firebase/firebase.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, appConfig, authConfig, redisConfig],
+      load: [
+        databaseConfig,
+        appConfig,
+        authConfig,
+        redisConfig,
+        firebaseConfig,
+      ],
       envFilePath: ['.env', `.env.${process.env.NODE_ENV}`],
     }),
     ScheduleModule.forRoot(),
@@ -46,6 +54,7 @@ import { DatabaseModule } from './database/database.module';
     }),
     SharedModule,
     DatabaseModule,
+    FirebaseModule,
     AuthModule,
     UsersModule,
     TemplatesModule,

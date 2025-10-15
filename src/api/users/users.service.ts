@@ -141,4 +141,13 @@ export class UsersService {
       })
       .returning();
   }
+
+  async updateFcmToken(userId: string, fcmToken: string) {
+    const [updatedUser] = await this.db
+      .update(usersTable)
+      .set({ fcmToken })
+      .where(eq(usersTable.id, userId))
+      .returning();
+    return updatedUser;
+  }
 }

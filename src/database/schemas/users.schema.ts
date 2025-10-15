@@ -17,6 +17,8 @@ export const usersTable = pgTable(
     createdBy: uuid('created_by'),
     // save token expo
     tokenExpo: varchar('token_expo', { length: 512 }),
+    // save FCM token for push notifications
+    fcmToken: varchar('fcm_token', { length: 512 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
