@@ -9,6 +9,8 @@ import PizZip from 'pizzip';
 import { DRIZZLE } from '../../database/database.module';
 import { casesTable } from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
+import { JwtPayloadType } from '../auth/types/jwt-payload.type';
+import { RoleEnum } from '../auth/types/role.enum';
 import { GetMyCaseStatisticsReqDto } from './dto/get-my-case-statistics.req.dto';
 
 @Injectable()
@@ -79,7 +81,11 @@ export class ReportsService {
     }
   }
 
-  async caseStatistics(reqDto: GetMyCaseStatisticsReqDto, userId: string) {
+  async caseStatistics(
+    reqDto: GetMyCaseStatisticsReqDto,
+    userId: string,
+    payload: JwtPayloadType,
+  ) {
     if (reqDto.startDate) {
       reqDto.startDate = DateTime.fromJSDate(reqDto.startDate)
         .setZone('Asia/Ho_Chi_Minh')
@@ -124,6 +130,9 @@ export class ReportsService {
             : []),
           ...(reqDto.endDate
             ? [lte(casesTable.startDate, reqDto.endDate)]
+            : []),
+          ...(payload.role !== RoleEnum.ADMIN
+            ? [eq(casesTable.userId, payload.id)]
             : []),
         ),
       );

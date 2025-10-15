@@ -22,9 +22,10 @@ export class ReportsController {
   @Get('case')
   async caseStatistics(
     @Query('userId') userId: string,
+    @CurrentUser() payload: JwtPayloadType,
     @Query() reqDto: GetMyCaseStatisticsReqDto,
   ) {
-    return this.reportsService.caseStatistics(reqDto, userId);
+    return this.reportsService.caseStatistics(reqDto, userId, payload);
   }
 
   // thông kế số vụ án của mình
@@ -36,6 +37,6 @@ export class ReportsController {
     @CurrentUser() payload: JwtPayloadType,
     @Query() reqDto: GetMyCaseStatisticsReqDto,
   ) {
-    return this.reportsService.caseStatistics(reqDto, payload.id);
+    return this.reportsService.caseStatistics(reqDto, payload.id, payload);
   }
 }

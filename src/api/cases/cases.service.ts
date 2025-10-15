@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, or, sql } from 'drizzle-orm';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { Order } from '../../constants/app.constant';
@@ -8,16 +8,18 @@ import { DRIZZLE } from '../../database/database.module';
 import {
   caseFieldsTable,
   caseGroupsTable,
+  casePhasesTable,
   casesTable,
   templateFieldsTable,
   templateGroupsTable,
 } from '../../database/schemas';
-import { casePhasesTable } from '../../database/schemas/case-phases.schema';
 import type {
   DrizzleDB,
   FindManyQueryConfig,
 } from '../../database/types/drizzle';
 import { ValidationException } from '../../exceptions/validation.exception';
+import { JwtPayloadType } from '../auth/types/jwt-payload.type';
+import { RoleEnum } from '../auth/types/role.enum';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CreateCaseDto } from './dto/create-case.req.dto';
 import { CreatePhasesReqDto } from './dto/create-phases.req.dto';
@@ -183,8 +185,24 @@ export class CasesService {
     });
   }
 
-  async getPageCases(reqDto: PageUserReqDto) {
+  async getPageCases(reqDto: PageUserReqDto, payload: JwtPayloadType) {
     const baseConfig: FindManyQueryConfig<typeof this.db.query.casesTable> = {
+      where: and(
+        ...(reqDto.q
+          ? [
+              or(
+                sql`unaccent(${casesTable.name}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                sql`unaccent(${casesTable.description}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                sql`unaccent(${casesTable.crimeType}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                sql`unaccent(${casesTable.applicableLaw}) ILIKE unaccent(${`%${reqDto.q}%`})`,
+                sql`CAST(${casesTable.numberOfDefendants} AS TEXT) ILIKE ${`%${reqDto.q}%`}`,
+              ),
+            ]
+          : []),
+        ...(payload.role !== RoleEnum.ADMIN
+          ? [eq(casesTable.userId, payload.id)]
+          : []),
+      ),
       with: {
         template: true,
         assignee: true,
@@ -431,6 +449,29 @@ export class CasesService {
       }
 
       return updatedCase;
+    });
+  }
+
+  async deleteCaseById(caseId: string, payload: JwtPayloadType) {
+    return this.db.transaction(async (tx) => {
+      // Check exists and permission (owner or admin)
+      const [caseFound] = await tx
+        .select({ userId: casesTable.userId, id: casesTable.id })
+        .from(casesTable)
+        .where(eq(casesTable.id, caseId));
+      if (!caseFound) {
+        throw new ValidationException(ErrorCode.C001);
+      }
+
+      if (payload.role !== RoleEnum.ADMIN && caseFound.userId !== payload.id) {
+        throw new ValidationException(
+          ErrorCode.V000,
+          'You do not have permission to delete this case',
+        );
+      }
+
+      await tx.delete(casesTable).where(eq(casesTable.id, caseId));
+      return { success: true };
     });
   }
 }

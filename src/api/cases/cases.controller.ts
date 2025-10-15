@@ -1,5 +1,18 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import { CurrentUser } from '../../decorators/current-user.decorator';
+import { ApiAuth } from '../../decorators/http.decorators';
+import { Roles } from '../../decorators/role.decorator';
+import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
+import { RoleEnum } from '../auth/types/role.enum';
 import { PageUserReqDto } from '../users/dto/page-user.req.dto';
 import { CasesService } from './cases.service';
 import { CreateCaseDto } from './dto/create-case.req.dto';
@@ -23,10 +36,16 @@ export class CasesController {
     return await this.casesService.createCase(reqDto);
   }
 
-  @ApiPublic()
+  @Roles(RoleEnum.STAFF)
+  @ApiAuth({
+    summary: 'Get paginated list of cases',
+  })
   @Get()
-  async getPageCases(@Query() reqDto: PageUserReqDto) {
-    return this.casesService.getPageCases(reqDto);
+  async getPageCases(
+    @CurrentUser() payload: JwtPayloadType,
+    @Query() reqDto: PageUserReqDto,
+  ) {
+    return this.casesService.getPageCases(reqDto, payload);
   }
 
   @ApiAuth({
@@ -93,5 +112,16 @@ export class CasesController {
   ) {
     console.log('Updating phase:', phaseId, reqDto);
     return this.casesService.updatePhaseById(phaseId, reqDto);
+  }
+
+  @ApiAuth({
+    summary: 'Delete case by ID',
+  })
+  @Delete(':caseId')
+  async deleteCaseById(
+    @CurrentUser() payload: JwtPayloadType,
+    @Param('caseId') caseId: string,
+  ) {
+    return this.casesService.deleteCaseById(caseId, payload);
   }
 }

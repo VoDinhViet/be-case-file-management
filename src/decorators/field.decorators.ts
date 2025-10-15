@@ -1,9 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, type ApiPropertyOptions } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
-  ArrayNotEmpty,
-  IsArray,
   IsBoolean,
   IsDate,
   IsDefined,
@@ -109,68 +107,46 @@ export function NumberFieldOptional(
   );
 }
 
-/**
- * Hàm build decorator cho string field
- */
-function buildStringFieldDecorators(
+export function StringField(
   options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
-) {
-  const decorators: PropertyDecorator[] = [
-    Type(() => String),
-    Transform(({ value }) => (value === '' ? null : value), {
-      toClassOnly: true,
-    }),
-  ];
+): PropertyDecorator {
+  const decorators = [Type(() => String), IsString({ each: options.each })];
 
-  // Nếu là mảng string[]
-  if (options.each) {
-    decorators.push(IsArray());
-    if (options.arrayNotEmpty) decorators.push(ArrayNotEmpty());
-    if (options.arrayMaxSize)
-      decorators.push(MaxLength(options.arrayMaxSize, { each: false }));
-  }
-
-  decorators.push(IsString({ each: options.each }));
-
-  // nullable
   if (options.nullable) {
     decorators.push(IsNullable({ each: options.each }));
   } else {
     decorators.push(NotEquals(null, { each: options.each }));
   }
 
-  // swagger
   if (options.swagger !== false) {
     const { required = true, ...restOptions } = options;
     decorators.push(
       ApiProperty({
         type: String,
-        isArray: options.each,
         required: !!required,
         ...restOptions,
+        isArray: options.each,
       }),
     );
   }
 
-  // min/max length
-  const minLength = options.minLength ?? 1;
+  const minLength = options.minLength || 1;
+
   decorators.push(MinLength(minLength, { each: options.each }));
 
   if (options.maxLength) {
     decorators.push(MaxLength(options.maxLength, { each: options.each }));
   }
 
-  // lowercase / uppercase
-  if (options.toLowerCase) decorators.push(ToLowerCase());
-  if (options.toUpperCase) decorators.push(ToUpperCase());
+  if (options.toLowerCase) {
+    decorators.push(ToLowerCase());
+  }
 
-  return decorators;
-}
+  if (options.toUpperCase) {
+    decorators.push(ToUpperCase());
+  }
 
-export function StringField(
-  options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
-): PropertyDecorator {
-  return applyDecorators(...buildStringFieldDecorators(options));
+  return applyDecorators(...decorators);
 }
 export function TokenField(
   options: Omit<ApiPropertyOptions, 'type'> & ITokenFieldOptions = {},

@@ -66,7 +66,7 @@ export class UsersController {
 
   @ApiAuth()
   @Get('profile')
-  async updateMyProfile(@CurrentUser() payload: JwtPayloadType) {
+  async getProfile(@CurrentUser() payload: JwtPayloadType) {
     return this.usersService.findById(payload.id);
   }
 

@@ -77,6 +77,7 @@ export class UsersService {
   }
 
   async updateByUserId(userId: string, reqDto: UpdateUserReqDto) {
+    console.log('Updating user with data:', reqDto);
     return this.db
       .update(usersTable)
       .set({
