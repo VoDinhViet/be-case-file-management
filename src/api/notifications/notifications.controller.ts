@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -16,7 +17,10 @@ import { PageNotificationReqDto } from './dto/page-notification.req.dto';
 import { SendFcmNotificationReqDto } from './dto/send-fcm-notification.req.dto';
 import { NotificationsService } from './notifications.service';
 
-@Controller('notifications')
+@Controller({
+  path: 'notifications',
+  version: '1',
+})
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -60,6 +64,18 @@ export class NotificationsController {
   @Patch('/mark-all-read')
   async markAllAsRead(@CurrentUser() payload: JwtPayloadType) {
     return this.notificationsService.markAllAsRead(payload.id);
+  }
+
+  @ApiAuth({ summary: 'Xóa thông báo theo ID' })
+  @Delete('/:notificationId')
+  async deleteNotification(
+    @CurrentUser() payload: JwtPayloadType,
+    @Param('notificationId') notificationId: string,
+  ) {
+    return this.notificationsService.deleteNotification(
+      notificationId,
+      payload.id,
+    );
   }
 
   @ApiAuth({ summary: 'Test gửi FCM push notification' })

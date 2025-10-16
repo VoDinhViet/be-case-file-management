@@ -208,13 +208,28 @@ export class NotificationsService {
   }
 
   /**
+   * Xóa notification theo ID
+   */
+  async deleteNotification(notificationId: string, userId: string) {
+    return this.db
+      .delete(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.id, notificationId),
+          eq(notificationsTable.userId, userId),
+        ),
+      )
+      .returning();
+  }
+
+  /**
    * Gửi FCM push notification cho một user cụ thể
    */
   async sendFcmPushToUser(
     userId: string,
     title: string,
     body: string,
-    imageUrl?: string,
+    _imageUrl?: string,
   ) {
     const user = await this.db.query.usersTable.findFirst({
       where: eq(usersTable.id, userId),
