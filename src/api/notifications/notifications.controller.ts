@@ -11,6 +11,7 @@ import {
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiAuth, ApiPublic } from '../../decorators/http.decorators';
 import type { JwtPayloadType } from '../auth/types/jwt-payload.type';
+import { CaseDeadlineScheduler } from './case-deadline.scheduler';
 import { CreateNotificationReqDto } from './dto/create-notification.req.dto';
 import { CreateTokenReqDto } from './dto/create-token.req.dto';
 import { PageNotificationReqDto } from './dto/page-notification.req.dto';
@@ -22,7 +23,10 @@ import { NotificationsService } from './notifications.service';
   version: '1',
 })
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly caseDeadlineScheduler: CaseDeadlineScheduler,
+  ) {}
 
   @ApiPublic()
   @Post('/create-token')
@@ -91,5 +95,13 @@ export class NotificationsController {
       reqDto.body,
       reqDto.imageUrl,
     );
+  }
+
+  @ApiPublic({
+    summary: 'Test chạy scheduler kiểm tra deadline (Development only)',
+  })
+  @Post('/test-deadline-check')
+  async testDeadlineCheck() {
+    return this.caseDeadlineScheduler.runDeadlineCheck();
   }
 }

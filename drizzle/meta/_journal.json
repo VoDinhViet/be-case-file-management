@@ -218,6 +218,13 @@
       "when": 1760520554018,
       "tag": "0030_vengeful_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1760591357563,
+      "tag": "0031_aromatic_gauntlet",
+      "breakpoints": true
     }
   ]
 }

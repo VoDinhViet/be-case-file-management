@@ -35,7 +35,7 @@ export class NotificationsService {
   }
 
   /**
-   * Tạo notification trong database và gửi push notification
+   * Tạo notification trong database và gửi push notification (Expo + FCM)
    */
   async createNotification(data: {
     userId: string;
@@ -44,20 +44,48 @@ export class NotificationsService {
     title: string;
     body: string;
   }) {
+    // Kiểm tra user có tồn tại không
+    const userExists = await this.db.query.usersTable.findFirst({
+      where: eq(usersTable.id, data.userId),
+      columns: { id: true },
+    });
+
+    if (!userExists) {
+      this.logger.warn(
+        `⚠️ Bỏ qua notification: User ${data.userId} không tồn tại (case: ${data.caseId})`,
+      );
+      return null; // Trả về null thay vì throw error
+    }
+
     // Lưu vào database
     const [notification] = await this.db
       .insert(notificationsTable)
       .values(data)
       .returning();
 
-    // Gửi push notification
-    await this.sendPushToUser(data.userId, data.title, data.body);
+    // Gửi push notification qua cả Expo và Firebase
+    await this.sendAllPushNotifications(data.userId, data.title, data.body);
 
     return notification;
   }
 
   /**
-   * Gửi push notification cho một user cụ thể
+   * Gửi push notification qua tất cả các kênh (Expo + Firebase)
+   */
+  private async sendAllPushNotifications(
+    userId: string,
+    title: string,
+    body: string,
+  ) {
+    // Gửi song song cả Expo và Firebase notification
+    await Promise.allSettled([
+      this.sendPushToUser(userId, title, body),
+      this.sendFcmPushToUser(userId, title, body),
+    ]);
+  }
+
+  /**
+   * Gửi Expo push notification cho một user cụ thể
    */
   async sendPushToUser(userId: string, title: string, body: string) {
     const user = await this.db.query.usersTable.findFirst({
@@ -84,9 +112,12 @@ export class NotificationsService {
       };
 
       const tickets = await this.expo.sendPushNotificationsAsync([message]);
-      this.logger.log(`Đã gửi push notification cho user ${userId}:`, tickets);
+      this.logger.log(
+        `✅ Đã gửi Expo push notification cho user ${userId}`,
+        tickets[0]?.status,
+      );
     } catch (error) {
-      this.logger.error(`Lỗi khi gửi push notification:`, error);
+      this.logger.error(`❌ Lỗi khi gửi Expo push notification:`, error);
     }
   }
 
@@ -238,7 +269,7 @@ export class NotificationsService {
 
     if (!user?.fcmToken) {
       this.logger.warn(`User ${userId} không có FCM token`);
-      throw new Error(`User không có FCM token`);
+      return; // Không throw error, chỉ return để không fail toàn bộ process
     }
 
     try {
@@ -273,7 +304,7 @@ export class NotificationsService {
 
       const response = await messaging.send(message);
       this.logger.log(
-        `Đã gửi FCM push notification cho user ${userId} (${user.fullName}): ${response}`,
+        `✅ Đã gửi FCM push notification cho user ${userId} (${user.fullName}): ${response}`,
       );
 
       return {
@@ -283,8 +314,13 @@ export class NotificationsService {
         userName: user.fullName,
       };
     } catch (error) {
-      this.logger.error(`Lỗi khi gửi FCM push notification:`, error);
-      throw error;
+      this.logger.error(`❌ Lỗi khi gửi FCM push notification:`, error);
+      // Không throw error để không fail toàn bộ process
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId,
+      };
     }
   }
 }

@@ -38,7 +38,9 @@ export const casesTable = pgTable('cases', {
     .notNull()
     .default(CaseStatusEnum.PENDING),
   description: text('description'),
-  userId: uuid('user_id'),
+  userId: uuid('user_id').references(() => usersTable.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
