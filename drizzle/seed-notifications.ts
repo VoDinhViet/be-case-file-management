@@ -6,8 +6,8 @@ import { RoleEnum } from 'src/api/auth/types/role.enum';
 import {
   notificationsTable,
   NotificationTypeEnum,
-} from '../src/database/schemas/notification.schema';
-import { usersTable } from '../src/database/schemas/users.schema';
+  usersTable,
+} from '../src/database/schemas';
 
 // Load environment variables
 dotenv.config({ path: '.env.development' });
