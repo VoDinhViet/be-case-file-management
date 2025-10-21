@@ -465,15 +465,5 @@ NODE_ENV=production node dist/main --env-file .env.production
 - `PORT` - Application port
 
 ## 📄 License
-
-UNLICENSED - Private project
-
-## 👥 Support
-
-Nếu có vấn đề, vui lòng tạo issue hoặc liên hệ team.
-
----
-
-**Version**: 0.0.1  
-**Last Updated**: October 2025
+AlvisDev
 
