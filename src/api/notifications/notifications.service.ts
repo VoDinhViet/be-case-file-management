@@ -1,16 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import Expo, { ExpoPushMessage } from 'expo-server-sdk';
 import { OffsetPaginationDto } from '../../common/dto/offset-pagination/ offset-pagination.dto';
 import { OffsetPaginatedDto } from '../../common/dto/offset-pagination/paginated.dto';
 import { DRIZZLE } from '../../database/database.module';
 import {
-  NotificationTypeEnum,
   notificationsTable,
+  NotificationTypeEnum,
   usersTable,
 } from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
 import { FirebaseService } from '../../firebase/firebase.service';
+import { RoleEnum } from '../auth/types/role.enum';
 import { CreateNotificationReqDto } from './dto/create-notification.req.dto';
 import { CreateTokenReqDto } from './dto/create-token.req.dto';
 import { PageNotificationReqDto } from './dto/page-notification.req.dto';
@@ -130,35 +131,12 @@ export class NotificationsService {
     const users = await this.db
       .select()
       .from(usersTable)
-      .where(isNotNull(usersTable.tokenExpo));
+      .where(eq(usersTable.role, RoleEnum.ADMIN));
 
-    const messages: ExpoPushMessage[] = [];
-
-    for (const user of users) {
-      const token = user.tokenExpo;
-      if (token && Expo.isExpoPushToken(token)) {
-        messages.push({
-          to: token,
-          sound: 'default',
-          title,
-          body,
-        });
-      } else {
-        this.logger.warn(`Invalid Expo push token: ${token}`);
-      }
-    }
-
-    // Gửi theo batch (Expo giới hạn ~100 message mỗi lần)
-    const chunks = this.expo.chunkPushNotifications(messages);
-
-    for (const chunk of chunks) {
-      try {
-        const tickets = await this.expo.sendPushNotificationsAsync(chunk);
-        this.logger.log('Sent batch:', tickets);
-      } catch (error) {
-        this.logger.error('Error sending batch:', error);
-      }
-    }
+    // send filebase
+    await Promise.allSettled(
+      users.map((user) => this.sendFcmPushToUser(user.id, title, body)),
+    );
   }
 
   /**
