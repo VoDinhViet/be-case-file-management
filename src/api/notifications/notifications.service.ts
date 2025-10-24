@@ -137,6 +137,10 @@ export class NotificationsService {
     await Promise.allSettled(
       users.map((user) => this.sendFcmPushToUser(user.id, title, body)),
     );
+    // send expo
+    await Promise.allSettled(
+      users.map((user) => this.sendPushToUser(user.id, title, body)),
+    );
   }
 
   /**
