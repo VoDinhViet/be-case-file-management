@@ -11,7 +11,6 @@ import {
 } from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
 import { FirebaseService } from '../../firebase/firebase.service';
-import { RoleEnum } from '../auth/types/role.enum';
 import { CreateNotificationReqDto } from './dto/create-notification.req.dto';
 import { CreateTokenReqDto } from './dto/create-token.req.dto';
 import { PageNotificationReqDto } from './dto/page-notification.req.dto';
@@ -128,10 +127,7 @@ export class NotificationsService {
   async send(reqDto: CreateNotificationReqDto) {
     const { title, body } = reqDto;
 
-    const users = await this.db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.role, RoleEnum.ADMIN));
+    const users = await this.db.select().from(usersTable);
 
     // send filebase
     await Promise.allSettled(
