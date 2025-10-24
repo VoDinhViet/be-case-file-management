@@ -138,6 +138,15 @@ export class NotificationsService {
         })),
       )
       .returning();
+    // send expo
+    await Promise.allSettled(
+      users.map((user) => this.sendPushToUser(user.id, title, body)),
+    );
+    // send filebase
+    await Promise.allSettled(
+      users.map((user) => this.sendFcmPushToUser(user.id, title, body)),
+    );
+    // sening();
   }
 
   /**
