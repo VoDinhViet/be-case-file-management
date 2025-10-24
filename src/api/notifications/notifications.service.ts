@@ -128,15 +128,16 @@ export class NotificationsService {
     const { title, body } = reqDto;
 
     const users = await this.db.select().from(usersTable);
-
-    // send filebase
-    await Promise.allSettled(
-      users.map((user) => this.sendFcmPushToUser(user.id, title, body)),
-    );
-    // send expo
-    await Promise.allSettled(
-      users.map((user) => this.sendPushToUser(user.id, title, body)),
-    );
+    await this.db
+      .insert(notificationsTable)
+      .values(
+        users.map((user) => ({
+          title,
+          body,
+          userId: user.id,
+        })),
+      )
+      .returning();
   }
 
   /**
