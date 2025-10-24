@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 import { casesTable } from './cases.schema';
 
@@ -28,6 +29,9 @@ export const casePlansTable = pgTable(
       .$type<string[]>()
       .default([])
       .notNull(), // lực lượng tham gia
+    startDate: timestamp('start_date'), // ngày bắt đầu
+    endDate: timestamp('end_date'), // ngày kết thúc
+    budget: varchar('budget', { length: 255 }), // ngân sách
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

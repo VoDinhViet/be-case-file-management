@@ -170,6 +170,11 @@ export class ReportsService {
       nextInvestigationPurpose: casePlan?.nextInvestigationPurpose || '',
       nextInvestigationContent: casePlan?.nextInvestigationContent || [],
       participatingForces: casePlan?.participatingForces || [],
+
+      // Thông tin thời gian và ngân sách từ kế hoạch
+      planStartDate: formatDate(casePlan?.startDate),
+      planEndDate: formatDate(casePlan?.endDate),
+      budget: casePlan?.budget || '',
     };
   }
 

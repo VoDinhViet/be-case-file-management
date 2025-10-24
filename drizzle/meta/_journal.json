@@ -225,6 +225,13 @@
       "when": 1760591357563,
       "tag": "0031_aromatic_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1761271203319,
+      "tag": "0032_nosy_red_hulk",
+      "breakpoints": true
     }
   ]
 }

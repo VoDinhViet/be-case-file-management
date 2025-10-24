@@ -653,6 +653,9 @@ export class CasesService {
         nextInvestigationPurpose: reqDto.nextInvestigationPurpose,
         nextInvestigationContent: reqDto.nextInvestigationContent || [],
         participatingForces: reqDto.participatingForces || [],
+        startDate: reqDto.startDate,
+        endDate: reqDto.endDate,
+        budget: reqDto.budget,
       };
 
       if (existingPlan) {

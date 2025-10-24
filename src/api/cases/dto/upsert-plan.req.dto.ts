@@ -1,4 +1,7 @@
-import { StringFieldOptional } from '../../../decorators/field.decorators';
+import {
+  DateFieldOptional,
+  StringFieldOptional,
+} from '../../../decorators/field.decorators';
 
 export class UpsertPlanReqDto {
   @StringFieldOptional({
@@ -31,4 +34,19 @@ export class UpsertPlanReqDto {
     example: ['Điều tra viên Nguyễn Văn A', 'Cán bộ điều tra tổng hợp'],
   })
   participatingForces?: string[];
+
+  @DateFieldOptional({
+    description: 'Ngày bắt đầu',
+  })
+  startDate?: Date;
+
+  @DateFieldOptional({
+    description: 'Ngày kết thúc',
+  })
+  endDate?: Date;
+
+  @StringFieldOptional({
+    description: 'Ngân sách',
+  })
+  budget?: string;
 }
