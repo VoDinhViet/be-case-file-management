@@ -221,9 +221,20 @@ export class AuthService {
       true,
       payload.exp * 1000 - Date.now(),
     );
+
+    // Xóa session
     await this.db
       .delete(sessionTable)
       .where(eq(sessionTable.id, payload.sessionId));
+
+    // Xóa fcmToken và tokenExpo
+    await this.db
+      .update(usersTable)
+      .set({
+        fcmToken: null,
+        tokenExpo: null,
+      })
+      .where(eq(usersTable.id, payload.id));
   }
 
   private verifyRefreshToken(token: string): JwtRefreshPayloadType {

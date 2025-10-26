@@ -191,6 +191,16 @@ export class CasesService {
       .groupBy(casePhasesTable.caseId)
       .as('phase_dates');
 
+    // Subquery để kiểm tra xem case có phases hay không
+    const phaseCheckSubquery = this.db
+      .select({
+        caseId: casePhasesTable.caseId,
+        hasPhases: sql<boolean>`COUNT(*) > 0`.as('has_phases'),
+      })
+      .from(casePhasesTable)
+      .groupBy(casePhasesTable.caseId)
+      .as('phase_check');
+
     // Build WHERE conditions
     const whereConditions = and(
       ...(reqDto.q
@@ -228,6 +238,10 @@ export class CasesService {
           // Computed dates từ phases
           startDate: phaseDatesSubquery.minStartDate,
           endDate: phaseDatesSubquery.maxEndDate,
+          // Check field
+          hasPhases: sql<boolean>`
+            COALESCE(${phaseCheckSubquery.hasPhases}, false)
+          `.as('hasPhases'),
           // Template relation
           template: templatesTable,
           // Assignee relation
@@ -237,6 +251,10 @@ export class CasesService {
         .leftJoin(
           phaseDatesSubquery,
           eq(casesTable.id, phaseDatesSubquery.caseId),
+        )
+        .leftJoin(
+          phaseCheckSubquery,
+          eq(casesTable.id, phaseCheckSubquery.caseId),
         )
         .leftJoin(templatesTable, eq(casesTable.templateId, templatesTable.id))
         .leftJoin(usersTable, eq(casesTable.userId, usersTable.id))
