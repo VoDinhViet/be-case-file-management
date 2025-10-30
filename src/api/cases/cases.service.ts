@@ -548,6 +548,19 @@ export class CasesService {
       }
 
       //----------------------------------------------------------------
+      // 2. Kiểm tra user có tồn tại không
+      //-----------------------------------------------------------------
+      if (reqDto.userId) {
+        const [userFound] = await tx
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.id, reqDto.userId));
+        if (!userFound) {
+          throw new ValidationException(ErrorCode.U001);
+        }
+      }
+
+      //----------------------------------------------------------------
       // 2️⃣ Cập nhật case (chỉ các field cơ bản, bỏ qua groups)
       //----------------------------------------------------------------
 
