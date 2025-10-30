@@ -36,6 +36,9 @@ export class UpdateCaseReqDto {
   @StringFieldOptional()
   crimeType?: string;
 
+  @UUIDFieldOptional()
+  userId?: string; // Cán bộ thụ lý (assignee)
+
   // --- Nested update for case groups and fields ---
   @ClassFieldOptional(() => UpdateCaseGroupDto, { isArray: true })
   groups?: UpdateCaseGroupDto[];
