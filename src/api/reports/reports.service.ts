@@ -8,22 +8,56 @@ import * as path from 'path';
 import PizZip from 'pizzip';
 import { DRIZZLE } from '../../database/database.module';
 import {
-  CasePhasesType,
   CasePlanType,
   CaseType,
+  SourcePlanType,
+  SourceType,
   casesTable,
 } from '../../database/schemas';
 import type { DrizzleDB } from '../../database/types/drizzle';
 import { JwtPayloadType } from '../auth/types/jwt-payload.type';
 import { RoleEnum } from '../auth/types/role.enum';
 import { CasesService } from '../cases/cases.service';
+import { SourcesService } from '../sources/sources.service';
 import { GetMyCaseStatisticsReqDto } from './dto/get-my-case-statistics.req.dto';
+
+type ReportEntity = {
+  name?: string | null;
+  description?: string | null;
+  status?: string | null;
+  crimeType?: string | null;
+  applicableLaw?: string | null;
+  numberOfDefendants?: string | number | null;
+  assignee?: {
+    fullName?: string | null;
+    phone?: string | null;
+  } | null;
+};
+
+type ReportPhase = {
+  startDate: Date | string;
+  endDate: Date | string | null;
+  completedAt: Date | string | null;
+  tasks?: unknown;
+};
+
+type ReportPlan = {
+  investigationResult?: unknown;
+  exhibits?: unknown;
+  nextInvestigationPurpose?: unknown;
+  nextInvestigationContent?: unknown;
+  participatingForces?: unknown;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
+  budget?: unknown;
+};
 
 @Injectable()
 export class ReportsService {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly casesService: CasesService,
+    private readonly sourcesService: SourcesService,
   ) {}
   async exportFromTemplate(caseId: string, res: Response) {
     try {
@@ -44,51 +78,10 @@ export class ReportsService {
       const data = this.formatDataTemplate(
         caseData as CaseType,
         casePhases,
-        casePlan as CasePlanType,
+        (casePlan as CasePlanType | undefined) ?? null,
       );
 
-      // 4️⃣ Đọc file template
-      const templatePath = path.join(
-        process.cwd(),
-        'src',
-        'api',
-        'reports',
-        'templates',
-        'template.docx',
-      );
-
-      // 5️⃣ Đọc file
-      const content = await fs.promises.readFile(templatePath);
-
-      // 6️⃣ Load template với cấu hình đúng
-      const zip = new PizZip(content);
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-      });
-
-      // 7️⃣ Render
-      doc.render(data);
-
-      // 8️⃣ Tạo buffer và gửi response
-      const buffer = doc.getZip().generate({
-        type: 'nodebuffer',
-        compression: 'DEFLATE',
-      });
-
-      // Tên file xuất bao gồm tên case
-      const caseName = (caseData.name || 'case').replace(/[^a-z0-9]/gi, '_');
-      const fileName = `${caseName}_${DateTime.now().toFormat('yyyyMMdd_HHmmss')}.docx`;
-
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      );
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(fileName)}"`,
-      );
-      res.send(buffer);
+      await this.renderAndSendDocx(data, caseData.name || 'case', res);
     } catch (error) {
       console.error('Lỗi khi xuất template:', error);
 
@@ -101,27 +94,86 @@ export class ReportsService {
     }
   }
 
+  async exportSourceFromTemplate(sourceId: string, res: Response) {
+    try {
+      //----------------------------------------------------------------
+      // 1. Lấy thông tin source từ database
+      //-----------------------------------------------------------------
+      const sourceData = await this.sourcesService.getSourceById(sourceId);
+
+      //----------------------------------------------------------------
+      // 2. Lấy thông tin phases và plan
+      //-----------------------------------------------------------------
+      const [sourcePhases, sourcePlan] = await Promise.all([
+        this.sourcesService.getPhasesBySourceId(sourceId),
+        this.sourcesService.getPlanBySourceId(sourceId),
+      ]);
+
+      // 3️⃣ Format dữ liệu cho template
+      const data = this.formatDataTemplate(
+        sourceData as SourceType,
+        sourcePhases,
+        (sourcePlan as SourcePlanType | undefined) ?? null,
+      );
+
+      await this.renderAndSendDocx(
+        data,
+        sourceData.name || 'source',
+        res,
+        'template-source.docx',
+      );
+    } catch (error) {
+      console.error('Lỗi khi xuất template nguồn tin:', error);
+
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Không thể tạo file DOCX từ template nguồn tin',
+          details: error.message,
+        });
+      }
+    }
+  }
+
   /**
-   * Format dữ liệu case để phù hợp với template docx
+   * Format dữ liệu entity (case/source) để phù hợp với template docx
    */
-  private formatDataTemplate(
-    caseData: CaseType,
-    casePhases: CasePhasesType[],
-    casePlan: CasePlanType | null | undefined,
-  ) {
+  private formatDataTemplate<
+    TEntity extends ReportEntity,
+    TPhase extends ReportPhase,
+    TPlan extends ReportPlan | null,
+  >(entity: TEntity, phases: TPhase[], plan: TPlan) {
     // Format ngày tháng
-    const formatDate = (date: Date | null | undefined) => {
-      if (!date) return '';
-      return DateTime.fromJSDate(new Date(date))
+    const toDate = (value: Date | string | null | undefined) => {
+      if (!value) return null;
+      return value instanceof Date ? value : new Date(value);
+    };
+
+    const formatDate = (date: Date | string | null | undefined) => {
+      const normalized = toDate(date);
+      if (!normalized) return '';
+      return DateTime.fromJSDate(normalized)
         .setZone('Asia/Ho_Chi_Minh')
         .toFormat('dd/MM/yyyy');
     };
 
+    const ensureString = (value: unknown) =>
+      value === null || value === undefined ? '' : String(value);
+
+    const ensureStringArray = (value: unknown) => {
+      if (!Array.isArray(value)) return [];
+      return value.map((item) => ensureString(item)).filter((item) => item);
+    };
+
     // Lấy tất cả tasks từ các phases
     const allTasks: string[] = [];
-    casePhases.forEach((phase) => {
-      if (phase.tasks && Array.isArray(phase.tasks)) {
-        allTasks.push(...phase.tasks);
+    phases.forEach((phase) => {
+      if (Array.isArray(phase.tasks)) {
+        phase.tasks.forEach((task) => {
+          const text = ensureString(task);
+          if (text) {
+            allTasks.push(text);
+          }
+        });
       }
     });
 
@@ -129,53 +181,112 @@ export class ReportsService {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
 
-    if (casePhases.length > 0) {
+    if (phases.length > 0) {
       // Sắp xếp phases theo startDate
-      const sortedPhases = [...casePhases].sort(
+      const sortedPhases = [...phases].sort(
         (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+          toDate(a.startDate)!.getTime() - toDate(b.startDate)!.getTime(),
       );
 
       // startDate của case = startDate của phase đầu tiên
-      startDate = sortedPhases[0].startDate;
+      startDate = toDate(sortedPhases[0].startDate);
 
       // endDate của case = endDate hoặc completedAt của phase cuối cùng
       const lastPhase = sortedPhases[sortedPhases.length - 1];
-      endDate = lastPhase.completedAt || lastPhase.endDate;
+      endDate =
+        toDate(lastPhase.completedAt) ?? toDate(lastPhase.endDate) ?? null;
     }
-    console.log(casePlan?.nextInvestigationContent);
 
     // Dữ liệu cuối cùng để thay thế trong template
     return {
       // Thông tin cơ bản
-      name: caseData.name || '',
-      description: caseData.description || '',
-      status: caseData.status || '',
-      crimeType: caseData.crimeType || '',
-      applicableLaw: caseData.applicableLaw || '',
-      numberOfDefendants: caseData.numberOfDefendants || 0,
+      name: ensureString(entity.name),
+      description: ensureString(entity.description),
+      status: ensureString(entity.status),
+      crimeType: ensureString(entity.crimeType),
+      applicableLaw: ensureString(entity.applicableLaw),
+      numberOfDefendants: ensureString(entity.numberOfDefendants),
       startDate: formatDate(startDate),
       endDate: formatDate(endDate),
 
       // Thông tin người phụ trách
-      fullName: caseData.assignee?.fullName || '',
-      phone: caseData.assignee?.phone || '',
+      fullName: ensureString(entity.assignee?.fullName),
+      phone: ensureString(entity.assignee?.phone),
 
       // Danh sách tasks từ các phases
       tasks: allTasks,
 
       // Thông tin kế hoạch điều tra (từ case_plans)
-      investigationResult: casePlan?.investigationResult || '',
-      exhibits: casePlan?.exhibits || [],
-      nextInvestigationPurpose: casePlan?.nextInvestigationPurpose || '',
-      nextInvestigationContent: casePlan?.nextInvestigationContent || [],
-      participatingForces: casePlan?.participatingForces || [],
+      investigationResult: ensureString(plan?.investigationResult),
+      exhibits: ensureStringArray(plan?.exhibits),
+      nextInvestigationPurpose: ensureString(plan?.nextInvestigationPurpose),
+      nextInvestigationContent: ensureStringArray(
+        plan?.nextInvestigationContent,
+      ),
+      participatingForces: ensureStringArray(plan?.participatingForces),
 
       // Thông tin thời gian và ngân sách từ kế hoạch
-      planStartDate: formatDate(casePlan?.startDate),
-      planEndDate: formatDate(casePlan?.endDate),
-      budget: casePlan?.budget || '',
+      planStartDate: formatDate(plan?.startDate ?? null),
+      planEndDate: formatDate(plan?.endDate ?? null),
+      budget: ensureString(plan?.budget),
     };
+  }
+
+  private async renderAndSendDocx(
+    data: Record<string, unknown>,
+    entityName: string | null | undefined,
+    res: Response,
+    preferredTemplate = 'template.docx',
+  ) {
+    const templatesDir = path.join(
+      process.cwd(),
+      'src',
+      'api',
+      'reports',
+      'templates',
+    );
+
+    const templatePath = path.join(templatesDir, preferredTemplate);
+    let content: Buffer;
+
+    try {
+      content = await fs.promises.readFile(templatePath);
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (preferredTemplate !== 'template.docx' && err.code === 'ENOENT') {
+        const fallbackPath = path.join(templatesDir, 'template.docx');
+        content = await fs.promises.readFile(fallbackPath);
+      } else {
+        throw error;
+      }
+    }
+
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    doc.render(data);
+
+    const buffer = doc.getZip().generate({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+    });
+
+    const rawName = entityName?.toString().trim() || 'report';
+    const sanitizedName = rawName.replace(/[^a-z0-9]/gi, '_') || 'report';
+    const fileName = `${sanitizedName}_${DateTime.now().toFormat('yyyyMMdd_HHmmss')}.docx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(fileName)}"`,
+    );
+    res.send(buffer);
   }
 
   async caseStatistics(

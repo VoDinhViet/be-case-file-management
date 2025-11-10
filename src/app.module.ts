@@ -11,6 +11,7 @@ import { CasesModule } from './api/cases/cases.module';
 import { NotificationsModule } from './api/notifications/notifications.module';
 import { ReportsModule } from './api/reports/reports.module';
 import { SharedModule } from './api/shared/shared.module';
+import { SourcesModule } from './api/sources/sources.module';
 import { TemplatesModule } from './api/templates/templates.module';
 import { UsersController } from './api/users/users.controller';
 import { UsersModule } from './api/users/users.module';
@@ -59,6 +60,7 @@ import { FirebaseModule } from './firebase/firebase.module';
     UsersModule,
     TemplatesModule,
     CasesModule,
+    SourcesModule,
     NotificationsModule,
     ReportsModule,
   ],

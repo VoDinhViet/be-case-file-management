@@ -232,6 +232,13 @@
       "when": 1761271203319,
       "tag": "0032_nosy_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1762138116433,
+      "tag": "0033_lonely_jamie_braddock",
+      "breakpoints": true
     }
   ]
 }

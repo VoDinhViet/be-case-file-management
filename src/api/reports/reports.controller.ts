@@ -19,6 +19,17 @@ export class ReportsController {
   }
 
   @ApiAuth({
+    summary: 'Xuất file docx từ template dựa trên source',
+  })
+  @Get('source/export')
+  async exportSource(
+    @Query('sourceId') sourceId: string,
+    @Res() res: Response,
+  ) {
+    return this.reportsService.exportSourceFromTemplate(sourceId, res);
+  }
+
+  @ApiAuth({
     summary: 'Thống kê số vụ án của mình',
   })
   @Get('case')
